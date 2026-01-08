@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  VET
+  CLIENT
+  ADMIN
+}
+
+enum AppointmentType {
+  CONSULTATION
+  HOME_VISIT
+  BOARDING
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  CHECKED_IN
+  CHECKED_OUT
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(CLIENT)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  client    Client? @relation("UserToClient")
+  vet       Vet?
+
+  @@map("users")
+}
+
+model Vet {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  crmv      String?
+  specialty String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  prescriptions Prescription[]
+
+  @@map("vets")
+}
+
+model Client {
+  id        String   @id @default(uuid())
+  userId    String?  @unique @map("user_id")
+  name      String
+  email     String?
+  address   String?
+  phone     String?
+  user      User?    @relation("UserToClient", fields: [userId], references: [id], onDelete: SetNull)
+  pets      Pet[]
+  sales     Sale[]
+
+  @@map("clients")
+}
+
+model Pet {
+  id          String   @id @default(uuid())
+  clientId    String   @map("client_id")
+  name        String
+  species     String
+  breed       String?
+  birthDate   DateTime? @map("birth_date")
+  weight      Float?
+  observations String?
+  
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  prescriptions Prescription[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("pets")
+}
+
+model Appointment {
+  id          String            @id @default(uuid())
+  petId       String            @map("pet_id")
+  date        DateTime
+  type        AppointmentType
+  status      AppointmentStatus @default(SCHEDULED)
+  notes       String?
+  
+  pet         Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  prescription Prescription?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("appointments")
+}
+
+model Prescription {
+  id            String   @id @default(uuid())
+  appointmentId String?  @unique @map("appointment_id")
+  petId         String   @map("pet_id")
+  vetId         String   @map("vet_id")
+  date          DateTime @default(now())
+  observations  String?
+
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  pet           Pet          @relation(fields: [petId], references: [id])
+  vet           Vet          @relation(fields: [vetId], references: [id])
+  items         PrescriptionItem[]
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("prescriptions")
+}
+
+model PrescriptionItem {
+  id             String       @id @default(uuid())
+  prescriptionId String       @map("prescription_id")
+  medication     String
+  dosage         String
+  frequency      String?
+  duration       String?
+  notes          String?
+
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@map("prescription_items")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  stock       Int      @default(0)
+  category    String?
+  
+  saleItems   SaleItem[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("products")
+}
+
+model Sale {
+  id        String   @id @default(uuid())
+  clientId  String?  @map("client_id")
+  total     Float
+  date      DateTime @default(now())
+  
+  client    Client?  @relation(fields: [clientId], references: [id])
+  items     SaleItem[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String   @id @default(uuid())
+  saleId    String   @map("sale_id")
+  productId String   @map("product_id")
+  quantity  Int
+  price     Float
+
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@map("sale_items")
+}
