@@ -66,11 +66,55 @@ export class ClientsService {
     });
   }
 
-  update(id: string, data: any) {
+  async update(id: string, data: any) {
+    const { createAccount, password, ...clientData } = data;
+
+    // Handle late account creation
+    if (createAccount && password) {
+      const client = await this.prisma.client.findUnique({
+        where: { id },
+        include: { user: true },
+      });
+
+      if (client && !client.user && client.email) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await this.prisma.user.create({
+          data: {
+            email: client.email, // Use client's current email
+            name: client.name,
+            password: hashedPassword,
+            role: 'CLIENT',
+            client: {
+              connect: { id: client.id },
+            },
+          },
+        });
+      }
+    }
+
     return this.prisma.client.update({
       where: { id },
-      data,
+      data: clientData,
       include: { user: true },
+    });
+  }
+
+  async remove(id: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (client?.userId) {
+      // Deleting the user will set client.userId to null due to SetNull in schema
+      // but we want to delete the client anyway.
+      await this.prisma.user.delete({
+        where: { id: client.userId },
+      });
+    }
+
+    return this.prisma.client.delete({
+      where: { id },
     });
   }
 }
