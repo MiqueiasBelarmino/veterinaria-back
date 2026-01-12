@@ -98,6 +98,7 @@ model Pet {
   plans       Plan[]
   clinicalRecords ClinicalRecord[]
   laboratoryExams LaboratoryExam[]
+  dietaryPlans    DietaryPlan[]
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -258,6 +259,7 @@ model Plan {
   appointments           Appointment[]
   clinicalRecords        ClinicalRecord[]
   laboratoryExams        LaboratoryExam[]
+  dietaryPlans           DietaryPlan[]
 
   createdAt              DateTime @default(now()) @map("created_at")
   updatedAt              DateTime @updatedAt @map("updated_at")
@@ -281,4 +283,50 @@ model LaboratoryExam {
   updatedAt   DateTime          @updatedAt @map("updated_at")
 
   @@map("laboratory_exams")
+}
+
+model DietaryPlan {
+  id              String   @id @default(uuid())
+  petId           String   @map("pet_id")
+  planId          String?  @map("plan_id")
+  version         Int      @default(1)
+  isActive        Boolean  @default(true) @map("is_active")
+  observations    String?
+  startDate       DateTime @default(now()) @map("start_date")
+  
+  pet             Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  plan            Plan?    @relation(fields: [planId], references: [id])
+  meals           Meal[]
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("dietary_plans")
+}
+
+model Meal {
+  id              String   @id @default(uuid())
+  dietaryPlanId   String   @map("dietary_plan_id")
+  name            String
+  time            String?
+  order           Int      @default(0)
+  
+  dietaryPlan     DietaryPlan @relation(fields: [dietaryPlanId], references: [id], onDelete: Cascade)
+  items           MealItem[]
+
+  @@map("meals")
+}
+
+model MealItem {
+  id              String   @id @default(uuid())
+  mealId          String   @map("meal_id")
+  foodName        String   @map("food_name")
+  quantity        Float
+  unit            String
+  frequency       String?
+  notes           String?
+  
+  meal            Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  @@map("meal_items")
 }
