@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsDate,
   IsNotEmpty,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -29,6 +30,19 @@ export class CreatePetDto {
   @IsOptional()
   @Type(() => Number)
   weight?: number;
+
+  @IsString()
+  @IsOptional()
+  sex?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  @Type(() => Boolean)
+  isNeutered?: boolean;
+
+  @IsString()
+  @IsOptional()
+  clinicalNotes?: string;
 
   @IsString()
   @IsOptional()
