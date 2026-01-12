@@ -29,6 +29,15 @@ enum AppointmentStatus {
   CHECKED_OUT
 }
 
+enum NutritionProtocol {
+  BASIC
+  OBESITY
+  ENDOCRINE
+  CME
+  DIABETES
+}
+
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -88,6 +97,7 @@ model Pet {
   prescriptions Prescription[]
   plans       Plan[]
   clinicalRecords ClinicalRecord[]
+  laboratoryExams LaboratoryExam[]
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -247,9 +257,28 @@ model Plan {
   
   appointments           Appointment[]
   clinicalRecords        ClinicalRecord[]
+  laboratoryExams        LaboratoryExam[]
 
   createdAt              DateTime @default(now()) @map("created_at")
   updatedAt              DateTime @updatedAt @map("updated_at")
 
   @@map("plans")
+}
+
+model LaboratoryExam {
+  id          String            @id @default(uuid())
+  petId       String            @map("pet_id")
+  planId      String?           @map("plan_id")
+  protocol    NutritionProtocol
+  date        DateTime          @default(now())
+  results     String
+  attachments String[]          @default([])
+  
+  pet         Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+  plan        Plan?             @relation(fields: [planId], references: [id])
+
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  @@map("laboratory_exams")
 }
