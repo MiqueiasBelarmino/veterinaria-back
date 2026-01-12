@@ -60,13 +60,47 @@ async function main() {
   }
 
   // Create Products
+  console.log('Seeding products...');
   await prisma.product.createMany({
     data: [
         { name: 'Ração Adulto 10kg', price: 180.00, stock: 20, category: 'Alimentação' },
         { name: 'Shampoo Neutro 500ml', price: 35.00, stock: 15, category: 'Higiene' },
         { name: 'Vacina V10', price: 120.00, stock: 50, category: 'Medicamento' },
     ],
+    skipDuplicates: true,
   });
+
+  console.log('Seeding PlanDefinitions...');
+  const planDefinitions = [
+    {
+      name: 'Consulta Avulsa',
+      type: 'SINGLE',
+      durationInMonths: 1,
+      returnsIncluded: 0,
+      examReturnCounts: false,
+    },
+    {
+      name: 'Plano 2 Meses',
+      type: 'MONTHLY_2',
+      durationInMonths: 2,
+      returnsIncluded: 1,
+      examReturnCounts: false,
+    },
+    {
+      name: 'Plano 3 Meses',
+      type: 'MONTHLY_3',
+      durationInMonths: 3,
+      returnsIncluded: 2,
+      examReturnCounts: false,
+    },
+  ];
+
+  for (const plan of planDefinitions) {
+    const exists = await prisma.planDefinition.findFirst({ where: { name: plan.name } });
+    if (!exists) {
+      await prisma.planDefinition.create({ data: plan });
+    }
+  }
 
   console.log('Seed completed successfully!');
 }

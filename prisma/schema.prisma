@@ -84,6 +84,7 @@ model Pet {
   client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   appointments Appointment[]
   prescriptions Prescription[]
+  plans       Plan[]
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -180,4 +181,47 @@ model SaleItem {
   product   Product  @relation(fields: [productId], references: [id])
 
   @@map("sale_items")
+}
+
+model PlanDefinition {
+  id               String   @id @default(uuid())
+  name             String
+  type             String
+  durationInMonths Int      @map("duration_in_months")
+  returnsIncluded  Int      @map("returns_included")
+  examReturnCounts Boolean  @default(false) @map("exam_return_counts")
+  isActive         Boolean  @default(true) @map("is_active")
+  
+  plans            Plan[]
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("plan_definitions")
+}
+
+enum PlanStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+model Plan {
+  id                     String   @id @default(uuid())
+  petId                  String   @map("pet_id")
+  planDefinitionId       String   @map("plan_definition_id")
+  startDate              DateTime @map("start_date")
+  endDate                DateTime @map("end_date")
+  status                 PlanStatus @default(ACTIVE)
+  returnsUsed            Int      @default(0) @map("returns_used")
+  overrideExamReturnCounts Boolean? @map("override_exam_return_counts")
+
+  pet                    Pet            @relation(fields: [petId], references: [id], onDelete: Cascade)
+  definition             PlanDefinition @relation(fields: [planDefinitionId], references: [id])
+
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("plans")
 }
