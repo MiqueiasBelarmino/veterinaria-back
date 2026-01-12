@@ -8,13 +8,46 @@ import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 export class AppointmentsService {
   constructor(private prisma: PrismaService) {}
 
-  create(createAppointmentDto: CreateAppointmentDto) {
-    const { petId, ...data } = createAppointmentDto;
+  async create(createAppointmentDto: CreateAppointmentDto) {
+    const { petId, planId, ...data } = createAppointmentDto;
+
+    // Logic for Plan Return management
+    if (planId) {
+      const plan = await this.prisma.plan.findUnique({
+        where: { id: planId },
+        include: { definition: true },
+      });
+
+      if (!plan) throw new Error('Plan not found');
+      if (plan.status !== 'ACTIVE') throw new Error('Plan is not active');
+      if (plan.petId !== petId)
+        throw new Error('Plan does not belong to this pet');
+
+      if (createAppointmentDto.type === 'RETURN') {
+        if (plan.returnsUsed >= plan.definition.returnsIncluded) {
+          // Allow override check if needed, strictly enforcing for now based on requirements
+          throw new Error('Limit of returns for this plan reached');
+        }
+
+        // Increment returns used
+        await this.prisma.plan.update({
+          where: { id: planId },
+          data: { returnsUsed: { increment: 1 } },
+        });
+      }
+    }
+
+    const appointmentData: Prisma.AppointmentCreateInput = {
+      ...data,
+      pet: { connect: { id: petId } },
+    };
+
+    if (planId) {
+      appointmentData.plan = { connect: { id: planId } };
+    }
+
     return this.prisma.appointment.create({
-      data: {
-        ...data,
-        pet: { connect: { id: petId } },
-      },
+      data: appointmentData,
     });
   }
 

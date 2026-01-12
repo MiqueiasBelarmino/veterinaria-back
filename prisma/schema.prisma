@@ -15,6 +15,8 @@ enum Role {
 
 enum AppointmentType {
   CONSULTATION
+  INITIAL
+  RETURN
   HOME_VISIT
   BOARDING
 }
@@ -85,6 +87,7 @@ model Pet {
   appointments Appointment[]
   prescriptions Prescription[]
   plans       Plan[]
+  clinicalRecords ClinicalRecord[]
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -99,9 +102,12 @@ model Appointment {
   type        AppointmentType
   status      AppointmentStatus @default(SCHEDULED)
   notes       String?
+  planId      String?           @map("plan_id")
   
   pet         Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  plan        Plan?    @relation(fields: [planId], references: [id])
   prescription Prescription?
+  clinicalRecords ClinicalRecord[]
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -140,6 +146,25 @@ model PrescriptionItem {
   prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
 
   @@map("prescription_items")
+}
+
+model ClinicalRecord {
+  id            String   @id @default(uuid())
+  petId         String   @map("pet_id")
+  appointmentId String?  @map("appointment_id")
+  planId        String?  @map("plan_id")
+  date          DateTime @default(now())
+  weight        Float?
+  notes         String?
+  
+  pet           Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  plan          Plan?        @relation(fields: [planId], references: [id])
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("clinical_records")
 }
 
 model Product {
@@ -219,6 +244,9 @@ model Plan {
 
   pet                    Pet            @relation(fields: [petId], references: [id], onDelete: Cascade)
   definition             PlanDefinition @relation(fields: [planDefinitionId], references: [id])
+  
+  appointments           Appointment[]
+  clinicalRecords        ClinicalRecord[]
 
   createdAt              DateTime @default(now()) @map("created_at")
   updatedAt              DateTime @updatedAt @map("updated_at")

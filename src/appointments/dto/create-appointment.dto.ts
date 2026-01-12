@@ -8,7 +8,9 @@ import {
 import { Type } from 'class-transformer';
 
 export enum AppointmentType {
-  CONSULTATION = 'CONSULTATION',
+  CONSULTATION = 'CONSULTATION', // Keeping for legacy compatibility if needed, or alias to INITIAL
+  INITIAL = 'INITIAL',
+  RETURN = 'RETURN',
   HOME_VISIT = 'HOME_VISIT',
   BOARDING = 'BOARDING',
 }
@@ -29,4 +31,8 @@ export class CreateAppointmentDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  planId?: string;
 }
