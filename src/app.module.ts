@@ -12,14 +12,14 @@ import { SalesModule } from './sales/sales.module';
 
 @Module({
   imports: [
-    AuthModule, 
+    AuthModule,
     UsersModule,
     ClientsModule,
     PetsModule,
     AppointmentsModule,
     PrescriptionsModule,
     ProductsModule,
-    SalesModule
+    SalesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

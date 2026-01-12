@@ -1,6 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { PetsService } from './pets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CreatePetDto } from './dto/create-pet.dto';
+import { UpdatePetDto } from './dto/update-pet.dto';
 
 @Controller('pets')
 @UseGuards(JwtAuthGuard)
@@ -8,13 +22,13 @@ export class PetsController {
   constructor(private readonly petsService: PetsService) {}
 
   @Post()
-  create(@Body() body: any) {
-    // Basic DTO should be improved later using Zod or ClassValidator
-    return this.petsService.create(body);
+  @UsePipes(new ValidationPipe({ transform: true }))
+  create(@Body() createPetDto: CreatePetDto) {
+    return this.petsService.create(createPetDto);
   }
 
   @Get()
-  findAll(@Request() req: any) {
+  findAll() {
     // If client, maybe filter by owning client?
     // For MVP, just list all or by query.
     // If req.user.role === 'CLIENT', user should implement filter.
@@ -28,8 +42,9 @@ export class PetsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: any) {
-    return this.petsService.update(id, body);
+  @UsePipes(new ValidationPipe({ transform: true }))
+  update(@Param('id') id: string, @Body() updatePetDto: UpdatePetDto) {
+    return this.petsService.update(id, updatePetDto);
   }
 
   @Delete(':id')

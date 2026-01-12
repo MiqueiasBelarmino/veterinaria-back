@@ -5,35 +5,40 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
-    constructor(
-        private usersService: UsersService,
-        private jwtService: JwtService,
-    ) { }
+  constructor(
+    private usersService: UsersService,
+    private jwtService: JwtService,
+  ) {}
 
-    async validateUser(email: string, password: string) {
-        const user = await this.usersService.findByEmail(email);
+  async validateUser(email: string, password: string) {
+    const user = await this.usersService.findByEmail(email);
 
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            throw new UnauthorizedException('Credenciais inválidas');
-        }
-
-        return user;
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      throw new UnauthorizedException('Credenciais inválidas');
     }
 
-    async login(email: string, password: string) {
-        const user = await this.validateUser(email, password);
+    return user;
+  }
 
-        const payload = { sub: user.id, name: user.name, email: user.email, role: user.role };
-        const token = this.jwtService.sign(payload);
+  async login(email: string, password: string) {
+    const user = await this.validateUser(email, password);
 
-        return {
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-            },
-        };
-    }
+    const payload = {
+      sub: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+    const token = this.jwtService.sign(payload);
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    };
+  }
 }

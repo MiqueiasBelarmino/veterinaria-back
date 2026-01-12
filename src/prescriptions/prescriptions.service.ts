@@ -1,12 +1,13 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+
+import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 
 @Injectable()
 export class PrescriptionsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: any, userId: string) {
+  async create(createPrescriptionDto: CreatePrescriptionDto, userId: string) {
     // First, get the user to check their role
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -19,7 +20,8 @@ export class PrescriptionsService {
 
     if (user.role !== 'VET') {
       throw new BadRequestException(
-        'Apenas veterinários podem criar prescrições. Seu perfil atual é: ' + user.role
+        'Apenas veterinários podem criar prescrições. Seu perfil atual é: ' +
+          user.role,
       );
     }
 
@@ -36,18 +38,19 @@ export class PrescriptionsService {
       });
     }
 
-    const { petId, appointmentId, items, ...rest } = data;
+    const { petId, appointmentId, items, ...rest } = createPrescriptionDto;
 
     return this.prisma.prescription.create({
       data: {
         ...rest,
         pet: { connect: { id: petId } },
         vet: { connect: { id: vet.id } },
-        appointment: appointmentId && appointmentId !== 'none' 
-          ? { connect: { id: appointmentId } } 
-          : undefined,
+        appointment:
+          appointmentId && appointmentId !== 'none'
+            ? { connect: { id: appointmentId } }
+            : undefined,
         items: {
-          create: items.map((item: any) => ({
+          create: items.map((item) => ({
             medication: item.medication,
             dosage: item.dosage,
             frequency: item.frequency,
@@ -66,23 +69,23 @@ export class PrescriptionsService {
   }
 
   findAll() {
-    return this.prisma.prescription.findMany({ 
-      include: { 
-        pet: true, 
-        items: true, 
-        vet: { include: { user: true } } 
-      } 
+    return this.prisma.prescription.findMany({
+      include: {
+        pet: true,
+        items: true,
+        vet: { include: { user: true } },
+      },
     });
   }
 
   findOne(id: string) {
-    return this.prisma.prescription.findUnique({ 
-      where: { id }, 
-      include: { 
-        items: true, 
-        pet: true, 
-        vet: { include: { user: true } } 
-      } 
+    return this.prisma.prescription.findUnique({
+      where: { id },
+      include: {
+        items: true,
+        pet: true,
+        vet: { include: { user: true } },
+      },
     });
   }
 }

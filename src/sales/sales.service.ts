@@ -6,19 +6,29 @@ import { Prisma } from '@prisma/client';
 export class SalesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: { clientId?: string; items: { productId: string; quantity: number }[] }) {
+  async create(data: {
+    clientId?: string;
+    items: { productId: string; quantity: number }[];
+  }) {
     return this.prisma.$transaction(async (tx) => {
       let total = 0;
-      const saleItems: { productId: string; quantity: number; price: number }[] = [];
+      const saleItems: {
+        productId: string;
+        quantity: number;
+        price: number;
+      }[] = [];
 
       for (const item of data.items) {
         const product = await tx.product.findUnique({
           where: { id: item.productId },
         });
 
-        if (!product) throw new Error(`Produto ${item.productId} não encontrado`);
+        if (!product)
+          throw new Error(`Produto ${item.productId} não encontrado`);
         if (product.stock < item.quantity) {
-          throw new Error(`Estoque insuficiente para o produto: ${product.name}`);
+          throw new Error(
+            `Estoque insuficiente para o produto: ${product.name}`,
+          );
         }
 
         // Reduce stock
@@ -51,10 +61,18 @@ export class SalesService {
   }
 
   findAll() {
-    return this.prisma.sale.findMany({ include: { items: { include: { product: true } }, client: { include: { user: true } } } });
+    return this.prisma.sale.findMany({
+      include: {
+        items: { include: { product: true } },
+        client: { include: { user: true } },
+      },
+    });
   }
 
   findOne(id: string) {
-    return this.prisma.sale.findUnique({ where: { id }, include: { items: { include: { product: true } } } });
+    return this.prisma.sale.findUnique({
+      where: { id },
+      include: { items: { include: { product: true } } },
+    });
   }
 }
