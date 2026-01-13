@@ -13,6 +13,7 @@ import { PlansModule } from './plans/plans.module';
 import { ClinicalRecordsModule } from './clinical-records/clinical-records.module';
 import { LaboratoryExamsModule } from './laboratory-exams/laboratory-exams.module';
 import { DietaryPlansModule } from './dietary-plans/dietary-plans.module';
+import { EducationalMaterialsModule } from './educational-materials/educational-materials.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DietaryPlansModule } from './dietary-plans/dietary-plans.module';
     ClinicalRecordsModule,
     LaboratoryExamsModule,
     DietaryPlansModule,
+    EducationalMaterialsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
