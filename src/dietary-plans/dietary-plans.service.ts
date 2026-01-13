@@ -49,6 +49,8 @@ export class DietaryPlansService {
                 unit: item.unit,
                 frequency: item.frequency,
                 notes: item.notes,
+                substitutions: item.substitutions,
+                combinations: item.combinations,
               })),
             },
           })),

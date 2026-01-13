@@ -21,6 +21,14 @@ export class CreateMealItemDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  substitutions?: string;
+
+  @IsString()
+  @IsOptional()
+  combinations?: string;
 }
 
 export class CreateMealDto {

@@ -325,6 +325,8 @@ model MealItem {
   unit            String
   frequency       String?
   notes           String?
+  substitutions   String?
+  combinations    String?
   
   meal            Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
 
