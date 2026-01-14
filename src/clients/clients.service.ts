@@ -59,6 +59,13 @@ export class ClientsService {
     });
   }
 
+  findByUserId(userId: string) {
+    return this.prisma.client.findUnique({
+      where: { userId },
+      include: { user: true },
+    });
+  }
+
   findOne(id: string) {
     return this.prisma.client.findUnique({
       where: { id },

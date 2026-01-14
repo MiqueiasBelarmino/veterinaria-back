@@ -15,11 +15,15 @@ import { PetsService } from './pets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
+import { ClientsService } from '../clients/clients.service';
 
 @Controller('pets')
 @UseGuards(JwtAuthGuard)
 export class PetsController {
-  constructor(private readonly petsService: PetsService) {}
+  constructor(
+    private readonly petsService: PetsService,
+    private readonly clientsService: ClientsService,
+  ) {}
 
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
@@ -28,11 +32,15 @@ export class PetsController {
   }
 
   @Get()
-  findAll() {
-    // If client, maybe filter by owning client?
-    // For MVP, just list all or by query.
-    // If req.user.role === 'CLIENT', user should implement filter.
-    // Assuming backend logic filters, but for now generic.
+  async findAll(@Request() req: any) {
+    const user = req.user;
+
+    if (user.role === 'CLIENT') {
+      const client = await this.clientsService.findByUserId(user.id);
+      if (!client) return [];
+      return this.petsService.findByClient(client.id);
+    }
+
     return this.petsService.findAll();
   }
 
