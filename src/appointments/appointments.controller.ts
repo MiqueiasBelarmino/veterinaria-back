@@ -34,7 +34,6 @@ export class AppointmentsController {
   }
 
   @Get(':id')
-  @RequireScopes('appointments:own')
   findOne(@Param('id') id: string) {
     return this.appointmentsService.findOne(id);
   }
