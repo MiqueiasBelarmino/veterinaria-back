@@ -35,4 +35,8 @@ export class CreateAppointmentDto {
   @IsString()
   @IsOptional()
   planId?: string;
+ 
+  @IsString()
+  @IsOptional()
+  vetId?: string;
 }

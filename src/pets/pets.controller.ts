@@ -13,12 +13,14 @@ import {
 } from '@nestjs/common';
 import { PetsService } from './pets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OwnershipGuard } from '../auth/guards/ownership.guard';
+import { CheckOwnership } from '../auth/decorators/check-ownership.decorator';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { ClientsService } from '../clients/clients.service';
 
 @Controller('pets')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, OwnershipGuard)
 export class PetsController {
   constructor(
     private readonly petsService: PetsService,
@@ -45,17 +47,20 @@ export class PetsController {
   }
 
   @Get(':id')
+  @CheckOwnership({ paramName: 'id', resourceType: 'pet' })
   findOne(@Param('id') id: string) {
     return this.petsService.findOne(id);
   }
 
   @Patch(':id')
+  @CheckOwnership({ paramName: 'id', resourceType: 'pet' })
   @UsePipes(new ValidationPipe({ transform: true }))
   update(@Param('id') id: string, @Body() updatePetDto: UpdatePetDto) {
     return this.petsService.update(id, updatePetDto);
   }
 
   @Delete(':id')
+  @CheckOwnership({ paramName: 'id', resourceType: 'pet' })
   remove(@Param('id') id: string) {
     return this.petsService.remove(id);
   }

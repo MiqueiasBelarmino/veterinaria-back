@@ -9,7 +9,7 @@ export class AppointmentsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createAppointmentDto: CreateAppointmentDto) {
-    const { petId, planId, ...data } = createAppointmentDto;
+    const { petId, planId, vetId, ...data } = createAppointmentDto;
 
     // Logic for Plan Return management
     if (planId) {
@@ -40,34 +40,70 @@ export class AppointmentsService {
     const appointmentData: Prisma.AppointmentCreateInput = {
       ...data,
       pet: { connect: { id: petId } },
+      vet: vetId ? { connect: { id: vetId } } : undefined,
     };
 
     if (planId) {
       appointmentData.plan = { connect: { id: planId } };
     }
-
-    return this.prisma.appointment.create({
+    // Create appointment and include pet -> client to allow notification creation
+    const created = await this.prisma.appointment.create({
       data: appointmentData,
+      include: {
+        pet: {
+          include: {
+            client: true,
+          },
+        },
+      },
     });
+
+    // Create a simple notification for the pet owner (if linked to a user)
+    try {
+      const clientUserId = created.pet?.client?.userId;
+      if (clientUserId) {
+        await this.prisma.notification.create({
+          data: {
+            user: { connect: { id: clientUserId } },
+            appointment: { connect: { id: created.id } },
+            type: 'APPOINTMENT_CREATED',
+            data: {
+              message: `Consulta agendada para ${created.date.toISOString()}`,
+            },
+          },
+        });
+      }
+    } catch (err) {
+      // Don't fail appointment creation for notification errors, log if necessary
+      // eslint-disable-next-line no-console
+      console.error('Failed to create notification:', err);
+    }
+
+    return created;
   }
 
-  findAll() {
-    return this.prisma.appointment.findMany({ include: { pet: true } });
+  findAll(vetId?: string) {
+    const where: Prisma.AppointmentWhereInput = {};
+    if (vetId) where.vetId = vetId;
+    return this.prisma.appointment.findMany({ where, include: { pet: true, vet: true } });
   }
 
   findOne(id: string) {
     return this.prisma.appointment.findUnique({
       where: { id },
-      include: { pet: true, prescription: true },
+      include: { pet: true, prescription: true, vet: true },
     });
   }
 
   update(id: string, updateAppointmentDto: UpdateAppointmentDto) {
-    const { petId, ...data } = updateAppointmentDto;
+    const { petId, vetId, ...data } = updateAppointmentDto as any;
     const updateData: Prisma.AppointmentUpdateInput = { ...data };
 
     if (petId) {
       updateData.pet = { connect: { id: petId } };
+    }
+    if (vetId) {
+      updateData.vet = { connect: { id: vetId } };
     }
 
     return this.prisma.appointment.update({ where: { id }, data: updateData });

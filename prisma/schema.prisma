@@ -49,6 +49,7 @@ model User {
 
   client    Client? @relation("UserToClient")
   vet       Vet?
+  notifications Notification[]
 
   @@map("users")
 }
@@ -59,8 +60,11 @@ model Vet {
   crmv      String?
   specialty String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  clinicId  String?  @map("clinic_id")
+  clinic    Clinic?  @relation(fields: [clinicId], references: [id])
+
   prescriptions Prescription[]
+  appointments    Appointment[]
 
   @@map("vets")
 }
@@ -110,6 +114,7 @@ model Pet {
 model Appointment {
   id          String            @id @default(uuid())
   petId       String            @map("pet_id")
+  vetId       String?           @map("vet_id")
   date        DateTime
   type        AppointmentType
   status      AppointmentStatus @default(SCHEDULED)
@@ -117,10 +122,12 @@ model Appointment {
   planId      String?           @map("plan_id")
   
   pet         Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  vet         Vet?     @relation(fields: [vetId], references: [id])
   plan        Plan?    @relation(fields: [planId], references: [id])
   prescription Prescription?
   clinicalRecords ClinicalRecord[]
   educationalMaterials EducationalMaterial[] @relation("AppointmentMaterials")
+  notifications Notification[]
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -359,4 +366,35 @@ model EducationalMaterial {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("educational_materials")
+}
+
+model Notification {
+  id            String     @id @default(uuid())
+  userId        String     @map("user_id")
+  appointmentId String?    @map("appointment_id")
+  type          String
+  data          Json?
+  read          Boolean    @default(false)
+  scheduledAt   DateTime?  @map("scheduled_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointment  Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@map("notifications")
+}
+
+model Clinic {
+  id        String  @id @default(uuid())
+  name      String
+  address   String?
+  phone     String?
+
+  vets      Vet[] 
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("clinics")
 }

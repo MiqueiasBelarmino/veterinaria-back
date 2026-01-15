@@ -12,11 +12,13 @@ import {
 } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ScopesGuard } from '../auth/guards/scopes.guard';
+import { RequireScopes } from '../auth/decorators/require-scopes.decorator';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 
 @Controller('appointments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ScopesGuard)
 export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
 
@@ -32,6 +34,7 @@ export class AppointmentsController {
   }
 
   @Get(':id')
+  @RequireScopes('appointments:own')
   findOne(@Param('id') id: string) {
     return this.appointmentsService.findOne(id);
   }
@@ -46,6 +49,7 @@ export class AppointmentsController {
   }
 
   @Delete(':id')
+  @RequireScopes('appointments:own')
   remove(@Param('id') id: string) {
     return this.appointmentsService.remove(id);
   }

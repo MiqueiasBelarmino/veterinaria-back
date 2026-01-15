@@ -14,10 +14,15 @@ import { ClinicalRecordsModule } from './clinical-records/clinical-records.modul
 import { LaboratoryExamsModule } from './laboratory-exams/laboratory-exams.module';
 import { DietaryPlansModule } from './dietary-plans/dietary-plans.module';
 import { EducationalMaterialsModule } from './educational-materials/educational-materials.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ClinicsModule } from './clinics/clinics.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     AuthModule,
+    ClinicsModule,
     UsersModule,
     ClientsModule,
     PetsModule,
@@ -30,6 +35,7 @@ import { EducationalMaterialsModule } from './educational-materials/educational-
     LaboratoryExamsModule,
     DietaryPlansModule,
     EducationalMaterialsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
