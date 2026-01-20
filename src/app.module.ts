@@ -17,11 +17,13 @@ import { EducationalMaterialsModule } from './educational-materials/educational-
 import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ClinicsModule } from './clinics/clinics.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     AuthModule,
+    AdminModule,
     ClinicsModule,
     UsersModule,
     ClientsModule,
