@@ -160,7 +160,7 @@ export class OrganizationService {
   ) {
     const organization = await this.findById(organizationId);
 
-    return await this.prisma.organization.update({
+    const updatedOrg = await this.prisma.organization.update({
       where: { id: organizationId },
       data: {
         name: updateOrgDto.name || organization.name,
@@ -195,6 +195,28 @@ export class OrganizationService {
         },
       },
     });
+
+    // If owner is being updated, ensure the new owner is a member with 'owner' role
+    if (updateOrgDto.ownerId) {
+      await this.prisma.organizationMember.upsert({
+        where: {
+          organizationId_userId: {
+            organizationId,
+            userId: updateOrgDto.ownerId,
+          },
+        },
+        create: {
+          organizationId,
+          userId: updateOrgDto.ownerId,
+          role: 'owner',
+        },
+        update: {
+          role: 'owner',
+        },
+      });
+    }
+
+    return updatedOrg;
   }
 
   async delete(organizationId: string) {
@@ -443,7 +465,7 @@ export class OrganizationService {
   }
 
   async getUserOrganizations(userId: string) {
-    return await this.prisma.organizationMember.findMany({
+    const members = await this.prisma.organizationMember.findMany({
       where: { userId },
       include: {
         organization: {
@@ -458,5 +480,7 @@ export class OrganizationService {
         },
       },
     });
+
+    return members.map((member) => member.organization);
   }
 }

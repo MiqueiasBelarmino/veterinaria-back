@@ -15,21 +15,21 @@ async function main() {
     // 1. Users
     await seedUsers(prisma);
 
-    // 2. Organizations (Depends on Users)
-    const organization = await seedOrganizations(prisma);
+    // // 2. Organizations (Depends on Users)
+    // const organization = await seedOrganizations(prisma);
     
-    if (!organization) {
-      throw new Error('Failed to seed organization');
-    }
+    // if (!organization) {
+    //   throw new Error('Failed to seed organization');
+    // }
 
-    // 3. Clients (Depends on Users & Organization)
-    await seedClients(prisma, organization.id);
+    // // 3. Clients (Depends on Users & Organization)
+    // await seedClients(prisma, organization.id);
 
-    // 4. Products (Depends on Organization)
-    await seedProducts(prisma, organization.id);
+    // // 4. Products (Depends on Organization)
+    // await seedProducts(prisma, organization.id);
 
-    // 5. Plan Definitions (Depends on Organization)
-    await seedPlans(prisma, organization.id);
+    // // 5. Plan Definitions (Depends on Organization)
+    // await seedPlans(prisma, organization.id);
 
     console.log('Seed completed successfully!');
   } catch (error) {
