@@ -10,7 +10,7 @@ export class UsersService {
     name: string;
     email: string;
     password: string;
-    role?: 'VET' | 'CLIENT' | 'ADMIN' | 'ROOT';
+    isSuperAdmin?: boolean;
   }) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
     return this.prisma.user.create({
@@ -18,14 +18,14 @@ export class UsersService {
         name: data.name,
         email: data.email,
         password: hashedPassword,
-        role: data.role || 'CLIENT',
+        isSuperAdmin: data.isSuperAdmin || false,
       },
     });
   }
 
   findAll() {
     return this.prisma.user.findMany({
-      select: { id: true, name: true, email: true, role: true },
+      select: { id: true, name: true, email: true, isSuperAdmin: true, globalRole: true },
     });
   }
 
@@ -43,10 +43,12 @@ export class UsersService {
     return this.prisma.user.findUnique({
       where: { email },
       include: {
-        vet: true,
-        client: true,
+        vet: true, // If we kept this
+        // client: true, // If we want to check client linkage
         organizationMembers: {
-          take: 1, // Basic single-tenant assumption for now
+          include: {
+            organization: true,
+          },
         },
       },
     });

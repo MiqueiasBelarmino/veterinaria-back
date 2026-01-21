@@ -1,25 +1,30 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe, UseGuards, Req } from '@nestjs/common';
 import { LaboratoryExamsService } from './laboratory-exams.service';
 import { CreateLaboratoryExamDto } from './dto/create-laboratory-exam.dto';
 import { UpdateLaboratoryExamDto } from './dto/update-laboratory-exam.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OrgGuard } from '../auth/guards/org.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
+import { Role } from '../auth/decorators/role.decorator';
 import { OwnershipGuard } from '../auth/guards/ownership.guard';
 import { CheckOwnership } from '../auth/decorators/check-ownership.decorator';
 
 @Controller('laboratory-exams')
-@UseGuards(JwtAuthGuard, OwnershipGuard)
+@UseGuards(JwtAuthGuard, OrgGuard, RoleGuard)
 export class LaboratoryExamsController {
   constructor(private readonly examsService: LaboratoryExamsService) {}
 
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
-  create(@Body() createDto: CreateLaboratoryExamDto) {
-    return this.examsService.create(createDto);
+  @Role('VET')
+  create(@Req() req, @Body() createDto: CreateLaboratoryExamDto) {
+    return this.examsService.create(createDto, req.user.organizationId);
   }
 
   @Get()
-  findAll() {
-    return this.examsService.findAll();
+  @Role('VET') // Or STAFF
+  findAll(@Req() req) {
+    return this.examsService.findAll(req.user.organizationId);
   }
 
   @Get('pet/:petId')

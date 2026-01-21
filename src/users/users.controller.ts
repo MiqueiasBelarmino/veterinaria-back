@@ -11,7 +11,7 @@ export class UsersController {
   @Post()
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Role('ROOT')
-  create(@Body() body: { name: string; email: string; password: string; role?: 'VET' | 'CLIENT' | 'ADMIN' | 'ROOT' }) {
+  create(@Body() body: { name: string; email: string; password: string; isSuperAdmin?: boolean }) {
     return this.usersService.create(body);
   }
 

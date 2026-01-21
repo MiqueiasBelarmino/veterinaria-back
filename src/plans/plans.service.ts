@@ -38,6 +38,7 @@ export class PlansService {
     return this.prisma.plan.create({
       data: {
         ...data,
+        organizationId,
         pet: { connect: { id: petId } },
         definition: { connect: { id: planDefinitionId } },
       },
@@ -48,8 +49,9 @@ export class PlansService {
   }
 
   async findAllByPet(petId: string, organizationId: string) {
+    // Plans have organizationId, so we can filter directly
     const plans = await this.prisma.plan.findMany({
-      where: { petId },
+      where: { petId, organizationId }, // Direct filter
       include: {
         definition: true,
         pet: { include: { client: true } }
@@ -59,9 +61,6 @@ export class PlansService {
       },
     });
 
-    if (organizationId) {
-         return plans.filter(p => (p.pet.client as any).organizationId === organizationId);
-    }
     return plans;
   }
 

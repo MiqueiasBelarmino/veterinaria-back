@@ -7,8 +7,8 @@ import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 export class PrescriptionsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createPrescriptionDto: CreatePrescriptionDto, userId: string) {
-    // First, get the user to check their role
+  async create(createPrescriptionDto: CreatePrescriptionDto, userId: string, organizationId: string) {
+    // 1. Get User and Vet Profile
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { vet: true },
@@ -18,16 +18,11 @@ export class PrescriptionsService {
       throw new BadRequestException('Usuário não encontrado');
     }
 
-    if (user.role !== 'VET') {
-      throw new BadRequestException(
-        'Apenas veterinários podem criar prescrições. Seu perfil atual é: ' +
-          user.role,
-      );
-    }
+    // Note: Role check is done by Guards. We assume if they are here, they are VET (or authorized).
 
     let vet = user.vet;
 
-    // Auto-create Vet record if user is VET but doesn't have one
+    // Auto-create Vet record if user doesn't have one (Global Profile)
     if (!vet) {
       vet = await this.prisma.vet.create({
         data: {
@@ -43,12 +38,10 @@ export class PrescriptionsService {
     return this.prisma.prescription.create({
       data: {
         ...rest,
-        pet: { connect: { id: petId } },
-        vet: { connect: { id: vet.id } },
-        appointment:
-          appointmentId && appointmentId !== 'none'
-            ? { connect: { id: appointmentId } }
-            : undefined,
+        organizationId,
+        petId,
+        vetId: vet.id,
+        appointmentId: appointmentId && appointmentId !== 'none' ? appointmentId : undefined,
         items: {
           create: items.map((item) => ({
             medication: item.medication,
@@ -68,8 +61,9 @@ export class PrescriptionsService {
     });
   }
 
-  findAll() {
+  findAll(organizationId: string) {
     return this.prisma.prescription.findMany({
+      where: { organizationId },
       include: {
         pet: true,
         items: true,

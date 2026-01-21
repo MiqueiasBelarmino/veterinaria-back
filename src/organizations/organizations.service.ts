@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma, OrganizationMemberRole } from '@prisma/client';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { AddMemberDto } from './dto/add-member.dto';
@@ -61,7 +62,7 @@ export class OrganizationService {
         data: {
           organizationId: organization.id,
           userId: ownerUserId,
-          role: 'owner',
+          role: OrganizationMemberRole.OWNER,
         },
       });
     }
@@ -90,6 +91,7 @@ export class OrganizationService {
             },
           },
         },
+        /* vets relation invalid directly
         vets: {
           include: {
             user: {
@@ -101,6 +103,7 @@ export class OrganizationService {
             },
           },
         },
+        */
       },
       orderBy: {
         createdAt: 'desc',
@@ -126,11 +129,12 @@ export class OrganizationService {
                 id: true,
                 name: true,
                 email: true,
-                role: true,
+                // role: true, // Removed
               },
             },
           },
         },
+        /* vets relation invalid directly
         vets: {
           include: {
             user: {
@@ -142,6 +146,7 @@ export class OrganizationService {
             },
           },
         },
+        */
       },
     });
 
@@ -208,10 +213,10 @@ export class OrganizationService {
         create: {
           organizationId,
           userId: updateOrgDto.ownerId,
-          role: 'owner',
+          role: OrganizationMemberRole.OWNER,
         },
         update: {
-          role: 'owner',
+          role: OrganizationMemberRole.OWNER,
         },
       });
     }
@@ -227,11 +232,14 @@ export class OrganizationService {
       where: { organizationId },
     });
 
-    // Update vets to remove organization reference
+    // Vets are members, handled above.
+    // Vet profile does not have organizationId.
+    /*
     await this.prisma.vet.updateMany({
       where: { organizationId },
       data: { organizationId: null },
     });
+    */
 
     // Delete organization
     return await this.prisma.organization.delete({
@@ -252,7 +260,7 @@ export class OrganizationService {
             id: true,
             name: true,
             email: true,
-            role: true,
+            // role: true, // Removed
           },
         },
       },
@@ -297,7 +305,7 @@ export class OrganizationService {
       data: {
         organizationId,
         userId: addMemberDto.userId,
-        role: addMemberDto.role,
+        role: addMemberDto.role as unknown as OrganizationMemberRole,
       },
       include: {
         user: {
@@ -328,7 +336,7 @@ export class OrganizationService {
     }
 
     // Prevent removing the owner
-    if (member.role === 'owner' && organization.ownerId === userId) {
+    if (member.role === OrganizationMemberRole.OWNER && organization.ownerId === userId) {
       throw new BadRequestException(
         'Cannot remove the owner from the organization',
       );
@@ -365,7 +373,7 @@ export class OrganizationService {
     }
 
     // Prevent downgrading the owner
-    if (member.role === 'owner' && updateRoleDto.role !== 'owner') {
+    if (member.role === OrganizationMemberRole.OWNER && updateRoleDto.role !== (OrganizationMemberRole.OWNER as unknown as any)) {
       throw new BadRequestException(
         'Cannot change the role of the organization owner',
       );
@@ -379,7 +387,7 @@ export class OrganizationService {
         },
       },
       data: {
-        role: updateRoleDto.role,
+        role: updateRoleDto.role as unknown as OrganizationMemberRole,
       },
       include: {
         user: {
@@ -398,8 +406,10 @@ export class OrganizationService {
   async getVets(organizationId: string) {
     await this.findById(organizationId); // Verify org exists
 
-    return await this.prisma.vet.findMany({
-      where: { organizationId },
+    await this.findById(organizationId); // Verify org exists
+
+    return await this.prisma.organizationMember.findMany({
+      where: { organizationId, role: OrganizationMemberRole.VET },
       include: {
         user: {
           select: {

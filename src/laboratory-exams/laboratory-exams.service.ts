@@ -7,28 +7,40 @@ import { UpdateLaboratoryExamDto } from './dto/update-laboratory-exam.dto';
 export class LaboratoryExamsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createDto: CreateLaboratoryExamDto) {
+  async create(createDto: CreateLaboratoryExamDto, organizationId: string) {
     const { petId, planId, ...data } = createDto;
 
-    const pet = await this.prisma.pet.findUnique({ where: { id: petId } });
+    const pet = await this.prisma.pet.findUnique({ 
+        where: { id: petId },
+        include: { client: true } // Needed for org check
+    });
     if (!pet) throw new NotFoundException('Pet not found');
 
+    // Verify Pet Organization
+    if ((pet.client as any).organizationId !== organizationId) {
+        throw new NotFoundException('Pet not found');
+    }
+    
+    // Verify Plan Organization
     if (planId) {
-      const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
+      const plan = await this.prisma.plan.findUnique({ where: { id: planId }, include: { definition: true } });
       if (!plan) throw new NotFoundException('Plan not found');
     }
 
     return this.prisma.laboratoryExam.create({
       data: {
         ...data,
-        pet: { connect: { id: petId } },
-        ...(planId && { plan: { connect: { id: planId } } }),
+        organizationId,
+        petId,
+        planId: planId || undefined,
       },
     });
   }
 
-  findAll() {
+  findAll(organizationId: string) {
+    if (!organizationId) return [];
     return this.prisma.laboratoryExam.findMany({
+      where: { organizationId },
       include: { pet: true, plan: { include: { definition: true } } },
     });
   }

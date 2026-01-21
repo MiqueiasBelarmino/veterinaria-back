@@ -7,12 +7,20 @@ import { UpdateDietaryPlanDto } from './dto/update-dietary-plan.dto';
 export class DietaryPlansService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createDto: CreateDietaryPlanDto) {
+  async create(createDto: CreateDietaryPlanDto, organizationId: string) {
     const { petId, planId, meals, ...data } = createDto;
 
     // Verify pet
-    const pet = await this.prisma.pet.findUnique({ where: { id: petId } });
+    const pet = await this.prisma.pet.findUnique({ 
+        where: { id: petId },
+        include: { client: true }
+    });
     if (!pet) throw new NotFoundException('Pet not found');
+    
+    // Verify Org
+    if ((pet.client as any).organizationId !== organizationId) {
+         throw new NotFoundException('Pet not found');
+    }
 
     // Handle versioning: Deactivate current active plan for this pet
     const currentActive = await this.prisma.dietaryPlan.findFirst({
@@ -35,8 +43,9 @@ export class DietaryPlansService {
         ...data,
         version: nextVersion,
         isActive: true,
-        pet: { connect: { id: petId } },
-        ...(planId && { plan: { connect: { id: planId } } }),
+        organizationId,
+        petId,
+        planId: planId || undefined,
         meals: {
           create: meals.map((meal) => ({
             name: meal.name,

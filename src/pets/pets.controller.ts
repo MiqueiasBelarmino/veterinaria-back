@@ -18,9 +18,12 @@ import { CheckOwnership } from '../auth/decorators/check-ownership.decorator';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { ClientsService } from '../clients/clients.service';
+import { OrgGuard } from '../auth/guards/org.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
+import { Role } from '../auth/decorators/role.decorator';
 
 @Controller('pets')
-@UseGuards(JwtAuthGuard, OwnershipGuard)
+@UseGuards(JwtAuthGuard, OrgGuard, RoleGuard)
 export class PetsController {
   constructor(
     private readonly petsService: PetsService,
@@ -29,21 +32,26 @@ export class PetsController {
 
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
-  create(@Body() createPetDto: CreatePetDto) {
-    return this.petsService.create(createPetDto);
+  @Role('VET') // Or STAFF/ADMIN
+  create(@Request() req, @Body() createPetDto: CreatePetDto) {
+    return this.petsService.create(createPetDto, req.user.organizationId);
   }
 
   @Get()
+  @Role('VET') // Check if CLIENT access is allowed here? Yes, handled below.
   async findAll(@Request() req: any) {
     const user = req.user;
 
+    // Provide CLIENT access logic (if token has CLIENT role)
     if (user.role === 'CLIENT') {
-      const client = await this.clientsService.findByUserId(user.id);
-      if (!client) return [];
-      return this.petsService.findByClient(client.id);
+       // We need to find the specific CLIENT record for this User in this Org
+       const client = await this.clientsService.findByUserAndOrg(user.id, user.organizationId);
+       if (!client) return [];
+       return this.petsService.findByClient(client.id);
     }
-
-    return this.petsService.findAll();
+    
+    // Default VET/ADMIN access
+    return this.petsService.findAll(user.organizationId);
   }
 
   @Get(':id')

@@ -8,7 +8,7 @@ import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 export class AppointmentsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createAppointmentDto: CreateAppointmentDto) {
+  async create(createAppointmentDto: CreateAppointmentDto, organizationId: string) {
     const { petId, planId, vetId, ...data } = createAppointmentDto;
 
     // Logic for Plan Return management
@@ -19,6 +19,7 @@ export class AppointmentsService {
       });
 
       if (!plan) throw new Error('Plan not found');
+      // Ideally check if plan belongs to same org (it should via pet/client chain)
       if (plan.status !== 'ACTIVE') throw new Error('Plan is not active');
       if (plan.petId !== petId)
         throw new Error('Plan does not belong to this pet');
@@ -39,6 +40,7 @@ export class AppointmentsService {
 
     const appointmentData: Prisma.AppointmentCreateInput = {
       ...data,
+      organization: { connect: { id: organizationId } }, // Add Org Context
       pet: { connect: { id: petId } },
       vet: vetId ? { connect: { id: vetId } } : undefined,
     };
@@ -64,6 +66,7 @@ export class AppointmentsService {
       if (clientUserId) {
         await this.prisma.notification.create({
           data: {
+            organization: { connect: { id: organizationId } }, // Notify in context
             user: { connect: { id: clientUserId } },
             appointment: { connect: { id: created.id } },
             type: 'APPOINTMENT_CREATED',
@@ -74,16 +77,15 @@ export class AppointmentsService {
         });
       }
     } catch (err) {
-      // Don't fail appointment creation for notification errors, log if necessary
-      // eslint-disable-next-line no-console
+      // Don't fail: log error
       console.error('Failed to create notification:', err);
     }
 
     return created;
   }
 
-  findAll(vetId?: string) {
-    const where: Prisma.AppointmentWhereInput = {};
+  findAll(organizationId: string, vetId?: string) {
+    const where: Prisma.AppointmentWhereInput = { organizationId };
     if (vetId) where.vetId = vetId;
     return this.prisma.appointment.findMany({ where, include: { pet: true, vet: true } });
   }

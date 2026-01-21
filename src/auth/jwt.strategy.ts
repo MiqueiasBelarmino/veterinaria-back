@@ -13,12 +13,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    // Payload contains: sub, name, email, organizationId?, role?, type ('neutral'|'scoped')
     return {
       id: payload.sub,
       name: payload.name,
       email: payload.email,
-      role: payload.role,
+      role: payload.role || (payload.isSuperAdmin ? 'ROOT' : 'USER'), 
+      // If role is missing (neutral token), default to USER or check isSuperAdmin.
+      // Ideally, a neutral token should probably provide minimal access.
       organizationId: payload.organizationId,
+      isSuperAdmin: payload.isSuperAdmin,
+      tokenType: payload.type
     };
   }
 }

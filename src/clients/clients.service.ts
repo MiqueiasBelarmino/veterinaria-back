@@ -24,8 +24,8 @@ export class ClientsService {
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Cast to any to bypass stale types for organizationId
-      const data: any = {
+      return this.prisma.client.create({
+        data: {
           name: clientData.name,
           email: clientData.email,
           phone: clientData.phone,
@@ -36,49 +36,50 @@ export class ClientsService {
               email: clientData.email,
               name: clientData.name,
               password: hashedPassword,
-              role: 'CLIENT',
+              // role defaulted to USER via schema
             },
           },
-      };
-
-      return this.prisma.client.create({
-        data,
+        },
         include: { user: true },
       });
     }
 
-    const data: any = {
-        name: clientData.name,
-        email: clientData.email,
-        phone: clientData.phone,
-        address: clientData.address,
-        organization: { connect: { id: organizationId } },
-    };
-
     return this.prisma.client.create({
-      data,
+      data: {
+         name: clientData.name,
+         email: clientData.email,
+         phone: clientData.phone,
+         address: clientData.address,
+         organization: { connect: { id: organizationId } },
+      },
       include: { user: true },
     });
   }
 
   findAll(organizationId: string) {
     if (!organizationId) return [];
-    // Cast where clause
-    const where: any = { organizationId };
     return this.prisma.client.findMany({
-      where,
+      where: { organizationId },
       include: { user: true, pets: true },
       orderBy: { name: 'asc' },
     });
   }
 
-  findByUserId(userId: string) {
-    // This is used internally mostly, might not need strict org filter if IDs are UUIDs, but safety is good.
-    // However, findByUserId is usually for looking up the profile of the CURRENT user.
-    return this.prisma.client.findUnique({
-      where: { userId },
-      include: { user: true },
+  // Deprecated/Modified: Returns first found (not strict) or all?
+  // We need strict lookup now.
+  async findByUserAndOrg(userId: string, organizationId: string) {
+    return this.prisma.client.findFirst({
+        where: { userId, organizationId },
+        include: { user: true }
     });
+  }
+
+  findByUserId(userId: string) {
+      // Return all client profiles for this user (across orgs)
+      return this.prisma.client.findMany({
+          where: { userId },
+          include: { organization: true }
+      });
   }
 
   async findOne(id: string, organizationId: string) {
@@ -87,14 +88,8 @@ export class ClientsService {
       include: { user: true, pets: true },
     });
 
-    // Cast client to any to access organizationId
-    const clientAny = client as any;
-
-    if (!client || (organizationId && clientAny.organizationId !== organizationId)) {
-        if (organizationId && clientAny?.organizationId !== organizationId) {
-             throw new NotFoundException('Cliente não encontrado');
-        }
-        if (!client) throw new NotFoundException('Cliente não encontrado');
+    if (!client || (organizationId && client.organizationId !== organizationId)) {
+        throw new NotFoundException('Cliente não encontrado');
     }
     return client;
   }
@@ -104,7 +99,7 @@ export class ClientsService {
 
     const { createAccount, password, ...clientData } = data;
 
-    // Fetch current state to check for existing user
+    // Fetch current state
     const client = await this.prisma.client.findUnique({
       where: { id },
       include: { user: true },
@@ -118,7 +113,6 @@ export class ClientsService {
 
     // Handle late account creation
     if (createAccount && password && !client.user && emailToUse) {
-      // Check if user already exists
       const existingUser = await this.prisma.user.findUnique({
         where: { email: emailToUse },
       });
@@ -134,11 +128,9 @@ export class ClientsService {
           email: emailToUse,
           name: clientData.name || client.name,
           password: hashedPassword,
-          role: 'CLIENT',
         },
       });
 
-      // Link the new user to the clientData payload
       clientData.userId = newUser.id;
     }
 
@@ -150,12 +142,17 @@ export class ClientsService {
   }
 
   async remove(id: string, organizationId: string) {
-    const client = await this.findOne(id, organizationId); // Ensure ownership
+    const client = await this.findOne(id, organizationId);
 
     if (client?.userId) {
-      await this.prisma.user.delete({
-        where: { id: client.userId },
-      });
+      // Optional: Delete the User account too? 
+      // In Multi-tenant, we should NOT delete the User if they belong to other orgs or have other data.
+      // But for Client-System where User is 1:1 with Client logic (legacy), we did.
+      // Now User can be shared.
+      // Check if User acts as Client/Member elsewhere?
+      // Safer to NOT delete User automatically, or only if it has NO other relations.
+      // For now, I will COMMENT OUT User deletion to be safe/compliant with Multi-tenant.
+      // await this.prisma.user.delete({ where: { id: client.userId } });
     }
 
     return this.prisma.client.delete({

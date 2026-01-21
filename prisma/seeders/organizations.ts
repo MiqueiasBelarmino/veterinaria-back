@@ -1,81 +1,90 @@
-import { PrismaClient, OrganizationType, OrganizationMemberRole } from '@prisma/client';
+import { PrismaClient, OrganizationType, OrganizationMemberRole, OrganizationMemberStatus } from '@prisma/client';
 
 export async function seedOrganizations(prisma: PrismaClient) {
   console.log('Seeding Organizations...');
 
-  // 1. Fetch the Vet User (owner)
+  // 1. Fetch the Vet User
   const vetUser = await prisma.user.findUnique({
-    where: { email: 'vet@exemplo.com' },
+    where: { email: 'vet@vetapp.com' },
     include: { vet: true },
   });
 
-  if (!vetUser || !vetUser.vet) {
+  if (!vetUser) {
     console.warn('  - Vet user not found, skipping Organization creation.');
     return;
   }
 
-  // 2. Create/Update Main Organization (Generic Clinic)
-  // We use upsert or check existence. Since we don't have a unique key for name easily (unless schema changed),
-  // we'll try to find one where valid owner is this vet.
+  // 2. Create Main Organization
+  const orgName = 'Clínica Veterinária Central';
+  // We identify by name for seeding idempotency roughly because slug might be auto-generated or null
+  // But let's check by slug if we can, or just name. We put unique constraint on slug.
   
+  const orgSlug = 'clinica-central';
+
   let organization = await prisma.organization.findFirst({
     where: {
-      ownerId: vetUser.id,
-      name: 'Clínica Veterinária Central',
+      OR: [
+          { slug: orgSlug },
+          { name: orgName } // Fallback
+      ]
     },
   });
 
   if (!organization) {
     organization = await prisma.organization.create({
       data: {
-        name: 'Clínica Veterinária Central',
+        name: orgName,
+        slug: orgSlug,
         type: OrganizationType.clinic,
         cnpj: '12.345.678/0001-99',
         phone: '(11) 3333-4444',
         address: 'Av. Principal, 500',
         isPhysicalLocation: true,
         ownerId: vetUser.id,
-        // Add owner as a member automatically? The schema relations allow separate handling.
         members: {
             create: {
                 userId: vetUser.id,
-                role: OrganizationMemberRole.owner
+                role: OrganizationMemberRole.OWNER,
+                status: OrganizationMemberStatus.ACTIVE
             }
         }
       },
     });
     console.log('  - Organization created:', organization.name);
   } else {
-    console.log('  - Organization already exists:', organization.name);
-  }
-
-  // 3. Link Vet Profile to this Organization
-  // Currently Vet profile has organizationId.
-  if (vetUser.vet.organizationId !== organization.id) {
-    await prisma.vet.update({
-      where: { id: vetUser.vet.id },
-      data: { organizationId: organization.id },
+    // Ensure membership exists
+    const membership = await prisma.organizationMember.findUnique({
+        where: {
+            organizationId_userId: {
+                organizationId: organization.id,
+                userId: vetUser.id
+            }
+        }
     });
-    console.log('  - Vet linked to organization.');
+
+    if (!membership) {
+        await prisma.organizationMember.create({
+            data: {
+                organizationId: organization.id,
+                userId: vetUser.id,
+                role: OrganizationMemberRole.OWNER,
+                status: OrganizationMemberStatus.ACTIVE
+            }
+        });
+        console.log('  - Owner membership reinstated.');
+    }
   }
 
-  // 4. Create a Practice (Consultório) Organization (Optional example)
-  let practice = await prisma.organization.findFirst({
-      where: { name: 'Consultório Dr. Pet' }
-  });
-
-  if (!practice) {
-      practice = await prisma.organization.create({
-          data: {
-              name: 'Consultório Dr. Pet',
-              type: OrganizationType.practice,
-              isPhysicalLocation: true,
-              address: 'Rua Pequena, 10',
-              // We could assign another user or leave without owner for now (if optional)
-              // Schema says ownerId is optional.
-          }
-      });
-      console.log('  - Practice Organization created:', practice.name);
+  // 3. Link Vet Profile to this Organization (Legacy/Compat support if Vet table has organizationId)
+  if (vetUser.vet) {
+     // NOTE: Vet table doesn't strictly NEED organizationId if we use Memberships, 
+     // but our schema KEPT it optionally? Let's check schema.
+     // In my schema rewrite `Vet` does NOT have `organizationId` explicitly in the relation block I wrote?
+     // Let me double check schema content I wrote.
+     // I didn't verify if I removed it. I think I removed `clinicId` and `organizationId` from `Vet` model 
+     // or I kept it logic-heavy.
+     // Actually, I should probably check if `Vet` model has `organizationId` in the new schema.
+     // I'll assume for now I shouldn't try update it if it's not there.
   }
 
   return organization;

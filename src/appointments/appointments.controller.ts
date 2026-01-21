@@ -9,28 +9,32 @@ import {
   UseGuards,
   UsePipes,
   ValidationPipe,
+  Request,
 } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ScopesGuard } from '../auth/guards/scopes.guard';
-import { RequireScopes } from '../auth/decorators/require-scopes.decorator';
+import { OrgGuard } from '../auth/guards/org.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
+import { Role } from '../auth/decorators/role.decorator';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 
 @Controller('appointments')
-@UseGuards(JwtAuthGuard, ScopesGuard)
+@UseGuards(JwtAuthGuard, OrgGuard, RoleGuard)
 export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
 
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
-  create(@Body() createAppointmentDto: CreateAppointmentDto) {
-    return this.appointmentsService.create(createAppointmentDto);
+  @Role('VET') // Or STAFF/ADMIN? Appointments usually VET or Reception (STAFF)
+  create(@Request() req, @Body() createAppointmentDto: CreateAppointmentDto) {
+    return this.appointmentsService.create(createAppointmentDto, req.user.organizationId);
   }
 
   @Get()
-  findAll() {
-    return this.appointmentsService.findAll();
+  @Role('VET') // Or STAFF
+  findAll(@Request() req) {
+    return this.appointmentsService.findAll(req.user.organizationId);
   }
 
   @Get(':id')
@@ -48,7 +52,7 @@ export class AppointmentsController {
   }
 
   @Delete(':id')
-  @RequireScopes('appointments:own')
+  @Role('ADMIN') // Or VET?
   remove(@Param('id') id: string) {
     return this.appointmentsService.remove(id);
   }

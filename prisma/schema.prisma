@@ -7,11 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  VET
-  CLIENT
+// Global System Role (only for Root/SuperAdmin usage)
+enum GlobalRole {
+  ROOT // Super admin of the system
+  USER // Standard user
+}
+
+// Organization-Level Role (RBAC)
+enum OrganizationMemberRole {
+  OWNER
   ADMIN
-  ROOT
+  VET
+  STAFF
+}
+
+enum OrganizationMemberStatus {
+  ACTIVE
+  INVITED
+  DISABLED
 }
 
 enum AppointmentType {
@@ -44,231 +57,321 @@ enum OrganizationType {
   group
 }
 
-enum OrganizationMemberRole {
-  owner
-  admin
-  vet
-  staff
-}
-
-
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(CLIENT)
+  id           String     @id @default(uuid())
+  email        String     @unique
+  password     String
+  name         String
+  isSuperAdmin Boolean    @default(false) @map("is_super_admin") // Identifies ROOT users
+  globalRole   GlobalRole @default(USER) @map("global_role") // Redundant but explicit? Or just use isSuperAdmin. Keeping for clarity if needed.
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  client    Client? @relation("UserToClient")
-  vet       Vet?
-  notifications Notification[]
+  // Relations
   organizationMembers OrganizationMember[] @relation("UserToOrganizationMember")
-  ownedOrganizations Organization[] @relation("OrganizationOwner")
+  ownedOrganizations  Organization[]       @relation("OrganizationOwner")
+  notifications       Notification[] // Global notifications (system wide)
+  clients             Client[]             @relation("UserToClient")
+
+  // NOTE: Vet profile is now linked via OrganizationMember? 
+  // Actually, a User might still be a Vet across multiple orgs, but the Vet Core Data (CRMV) might be global or per org?
+  // Usually CRMV is personal, so Vet profile could be global or per org.
+  // The prompt says "Model OrganizationMember é a tabela pivot". 
+  // Let's keep a generic Vet profile if it's personal info, but link it to User. 
+  // However, permissions are illegal without org.
+  vet Vet? // Global Vet Profile (e.g. CRMV, Specialty) linked to User
 
   @@map("users")
 }
 
 model Vet {
-  id        String   @id @default(uuid())
-  userId    String   @unique @map("user_id")
+  id        String  @id @default(uuid())
+  userId    String  @unique @map("user_id")
   crmv      String?
   specialty String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  clinicId  String?  @map("clinic_id")
-  clinic    Clinic?  @relation(fields: [clinicId], references: [id])
-  organizationId String? @map("organization_id")
-  organization Organization? @relation("VetsToOrganization", fields: [organizationId], references: [id])
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Vets can belong to multiple organizations via OrganizationMember.
+  // BUT the Vet entity here seems to store "Specialty" and "CRMV".
+  // If we want to link appointments to a specific Vet, we usually link to the OrganizationMember (which is the VET in that ORG).
+  // OR we link to this global Vet profile + OrganizationId.
+  // Given the requirement "User pode ter roles diferentes em cada org", a User might be a VET in Org A and OWNER in Org B.
+  // So "Vet" profile might only apply when they are acting as a VET.
+  // For simplicity, we keep this "Vet" table as "Professional Details" of the User.
+  // When assigning a vet to an appointment, we should reference the User (or OrgMember) inside that scope.
+  // We will add relations to Appointment/Prescription for convenience, but validated by Org.
+
+  appointments  Appointment[]
   prescriptions Prescription[]
-  appointments    Appointment[]
 
   @@map("vets")
 }
 
-model Client {
-  id        String   @id @default(uuid())
-  userId    String?  @unique @map("user_id")
-  name      String
-  email     String?
-  address   String?
-  phone     String?
-  user      User?    @relation("UserToClient", fields: [userId], references: [id], onDelete: SetNull)
-  pets      Pet[]
-  sales     Sale[]
-  organizationId String @map("organization_id")
-  organization   Organization @relation("OrganizationClients", fields: [organizationId], references: [id])
+model Organization {
+  id                 String           @id @default(uuid())
+  name               String
+  slug               String?          @unique // Recommended for URLs
+  type               OrganizationType @default(practice)
+  cnpj               String?
+  isPhysicalLocation Boolean          @default(true) @map("is_physical_location")
+  address            String?
+  phone              String?
 
+  ownerId String? @map("owner_id")
+  owner   User?   @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  members               OrganizationMember[]  @relation("OrganizationToMembers")
+  clients               Client[]              @relation("OrganizationClients")
+  products              Product[]             @relation("OrganizationProducts")
+  sales                 Sale[]                @relation("OrganizationSales")
+  plans                 PlanDefinition[]      @relation("OrganizationPlans")
+  materials             EducationalMaterial[] @relation("OrganizationMaterials")
+  pets                  Pet[]                 @relation("OrganizationPets")
+  appointments          Appointment[]         @relation("OrganizationAppointments")
+  prescriptions         Prescription[]        @relation("OrganizationPrescriptions")
+  clinicalRecords       ClinicalRecord[]      @relation("OrganizationClinicalRecords")
+  laboratoryExams       LaboratoryExam[]      @relation("OrganizationLabs")
+  dietaryPlans          DietaryPlan[]         @relation("OrganizationDietaryPlans")
+  notificationTemplates Notification[]        @relation("OrganizationNotifications")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String                   @id @default(uuid())
+  organizationId String                   @map("organization_id")
+  userId         String                   @map("user_id")
+  role           OrganizationMemberRole   @default(STAFF)
+  status         OrganizationMemberStatus @default(ACTIVE)
+  joinedAt       DateTime                 @default(now()) @map("joined_at")
+
+  organization Organization @relation("OrganizationToMembers", fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation("UserToOrganizationMember", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model Client {
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
+  name           String
+  email          String?
+  address        String?
+  phone          String?
+
+  // Client might optionally be linked to a User (for portal access)
+  // Logic: A Global User might be invited as a Client to this Org.
+  userId String? @map("user_id")
+  user   User?   @relation("UserToClient", fields: [userId], references: [id], onDelete: SetNull)
+
+  organization Organization @relation("OrganizationClients", fields: [organizationId], references: [id], onDelete: Cascade)
+  pets         Pet[]
+  sales        Sale[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
   @@map("clients")
 }
 
 model Pet {
-  id          String   @id @default(uuid())
-  clientId    String   @map("client_id")
-  name        String
-  species     String
-  breed       String?
-  birthDate   DateTime? @map("birth_date")
-  weight      Float?
-  sex         String?
-  isNeutered  Boolean  @default(false) @map("is_neutered")
-  clinicalNotes String? @map("clinical_notes")
-  observations String?
-  
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
-  prescriptions Prescription[]
-  plans       Plan[]
-  clinicalRecords ClinicalRecord[]
-  laboratoryExams LaboratoryExam[]
-  dietaryPlans    DietaryPlan[]
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  clientId       String    @map("client_id")
+  name           String
+  species        String
+  breed          String?
+  birthDate      DateTime? @map("birth_date")
+  weight         Float?
+  sex            String?
+  isNeutered     Boolean   @default(false) @map("is_neutered")
+  clinicalNotes  String?   @map("clinical_notes")
+  observations   String?
+
+  organization         Organization          @relation("OrganizationPets", fields: [organizationId], references: [id], onDelete: Cascade)
+  client               Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  appointments         Appointment[]
+  prescriptions        Prescription[]
+  plans                Plan[]
+  clinicalRecords      ClinicalRecord[]
+  laboratoryExams      LaboratoryExam[]
+  dietaryPlans         DietaryPlan[]
   educationalMaterials EducationalMaterial[] @relation("PetMaterials")
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([organizationId])
+  @@index([clientId])
   @@map("pets")
 }
 
 model Appointment {
-  id          String            @id @default(uuid())
-  petId       String            @map("pet_id")
-  vetId       String?           @map("vet_id")
-  date        DateTime
-  type        AppointmentType
-  status      AppointmentStatus @default(SCHEDULED)
-  notes       String?
-  planId      String?           @map("plan_id")
-  
-  pet         Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
-  vet         Vet?     @relation(fields: [vetId], references: [id])
-  plan        Plan?    @relation(fields: [planId], references: [id])
-  prescription Prescription?
-  clinicalRecords ClinicalRecord[]
+  id             String            @id @default(uuid())
+  organizationId String            @map("organization_id")
+  petId          String            @map("pet_id")
+  vetId          String?           @map("vet_id") // Optional: specific vet assigned
+  date           DateTime
+  type           AppointmentType
+  status         AppointmentStatus @default(SCHEDULED)
+  notes          String?
+  planId         String?           @map("plan_id")
+
+  organization         Organization          @relation("OrganizationAppointments", fields: [organizationId], references: [id], onDelete: Cascade)
+  pet                  Pet                   @relation(fields: [petId], references: [id], onDelete: Cascade)
+  vet                  Vet?                  @relation(fields: [vetId], references: [id])
+  plan                 Plan?                 @relation(fields: [planId], references: [id])
+  prescription         Prescription?
+  clinicalRecords      ClinicalRecord[]
   educationalMaterials EducationalMaterial[] @relation("AppointmentMaterials")
-  notifications Notification[]
+  notifications        Notification[]
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([organizationId])
+  @@index([petId])
+  @@index([date])
   @@map("appointments")
 }
 
 model Prescription {
-  id            String   @id @default(uuid())
-  appointmentId String?  @unique @map("appointment_id")
-  petId         String   @map("pet_id")
-  vetId         String   @map("vet_id")
-  date          DateTime @default(now())
-  observations  String?
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  appointmentId  String?  @unique @map("appointment_id")
+  petId          String   @map("pet_id")
+  vetId          String   @map("vet_id") // Prescribing Vet
+  date           DateTime @default(now())
+  observations   String?
 
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-  pet           Pet          @relation(fields: [petId], references: [id])
-  vet           Vet          @relation(fields: [vetId], references: [id])
-  items         PrescriptionItem[]
+  organization Organization       @relation("OrganizationPrescriptions", fields: [organizationId], references: [id], onDelete: Cascade)
+  appointment  Appointment?       @relation(fields: [appointmentId], references: [id])
+  pet          Pet                @relation(fields: [petId], references: [id])
+  vet          Vet                @relation(fields: [vetId], references: [id])
+  items        PrescriptionItem[]
 
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([organizationId])
+  @@index([petId])
   @@map("prescriptions")
 }
 
 model PrescriptionItem {
-  id             String       @id @default(uuid())
-  prescriptionId String       @map("prescription_id")
+  id             String  @id @default(uuid())
+  prescriptionId String  @map("prescription_id")
   medication     String
   dosage         String
   frequency      String?
   duration       String?
   notes          String?
 
-  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
 
+  @@index([prescriptionId])
   @@map("prescription_items")
 }
 
 model ClinicalRecord {
-  id            String   @id @default(uuid())
-  petId         String   @map("pet_id")
-  appointmentId String?  @map("appointment_id")
-  planId        String?  @map("plan_id")
-  date          DateTime @default(now())
-  weight        Float?
-  notes         String?
-  
-  pet           Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-  plan          Plan?        @relation(fields: [planId], references: [id])
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  petId          String   @map("pet_id")
+  appointmentId  String?  @map("appointment_id")
+  planId         String?  @map("plan_id")
+  date           DateTime @default(now())
+  weight         Float?
+  notes          String?
 
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  organization Organization @relation("OrganizationClinicalRecords", fields: [organizationId], references: [id], onDelete: Cascade)
+  pet          Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
+  appointment  Appointment? @relation(fields: [appointmentId], references: [id])
+  plan         Plan?        @relation(fields: [planId], references: [id])
 
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([petId])
   @@map("clinical_records")
 }
 
 model Product {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  price       Float
-  stock       Int      @default(0)
-  category    String?
-  
-  saleItems   SaleItem[]
-  organizationId String @map("organization_id")
-  organization   Organization @relation("OrganizationProducts", fields: [organizationId], references: [id])
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
+  name           String
+  description    String?
+  price          Float
+  stock          Int     @default(0)
+  category       String?
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  organization Organization @relation("OrganizationProducts", fields: [organizationId], references: [id], onDelete: Cascade)
+  saleItems    SaleItem[]
 
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
   @@map("products")
 }
 
 model Sale {
-  id        String   @id @default(uuid())
-  clientId  String?  @map("client_id")
-  total     Float
-  date      DateTime @default(now())
-  
-  client    Client?  @relation(fields: [clientId], references: [id])
-  items     SaleItem[]
-  organizationId String @map("organization_id")
-  organization   Organization @relation("OrganizationSales", fields: [organizationId], references: [id])
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  clientId       String?  @map("client_id")
+  total          Float
+  date           DateTime @default(now())
 
+  organization Organization @relation("OrganizationSales", fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client?      @relation(fields: [clientId], references: [id])
+  items        SaleItem[]
+
+  @@index([organizationId])
   @@map("sales")
 }
 
 model SaleItem {
-  id        String   @id @default(uuid())
-  saleId    String   @map("sale_id")
-  productId String   @map("product_id")
+  id        String @id @default(uuid())
+  saleId    String @map("sale_id")
+  productId String @map("product_id")
   quantity  Int
   price     Float
 
-  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id])
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
 
   @@map("sale_items")
 }
 
 model PlanDefinition {
-  id               String   @id @default(uuid())
+  id               String  @id @default(uuid())
+  organizationId   String  @map("organization_id")
   name             String
   type             String
-  durationInMonths Int      @map("duration_in_months")
-  returnsIncluded  Int      @map("returns_included")
-  examReturnCounts Boolean  @default(false) @map("exam_return_counts")
-  isActive         Boolean  @default(true) @map("is_active")
-  
-  plans            Plan[]
+  durationInMonths Int     @map("duration_in_months")
+  returnsIncluded  Int     @map("returns_included")
+  examReturnCounts Boolean @default(false) @map("exam_return_counts")
+  isActive         Boolean @default(true) @map("is_active")
+
+  organization         Organization          @relation("OrganizationPlans", fields: [organizationId], references: [id], onDelete: Cascade)
+  plans                Plan[]
   educationalMaterials EducationalMaterial[] @relation("PlanDefinitionMaterials")
-  organizationId String @map("organization_id")
-  organization   Organization @relation("OrganizationPlans", fields: [organizationId], references: [id])
 
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([organizationId])
   @@map("plan_definitions")
 }
 
@@ -280,94 +383,117 @@ enum PlanStatus {
 }
 
 model Plan {
-  id                     String   @id @default(uuid())
-  petId                  String   @map("pet_id")
-  planDefinitionId       String   @map("plan_definition_id")
-  startDate              DateTime @map("start_date")
-  endDate                DateTime @map("end_date")
-  status                 PlanStatus @default(ACTIVE)
-  returnsUsed            Int      @default(0) @map("returns_used")
-  overrideExamReturnCounts Boolean? @map("override_exam_return_counts")
+  id                       String     @id @default(uuid())
+  // Plan links to PlanDefinition which has organizationId, so we don't strictly need it here, 
+  // BUT for easy querying of "All Plans in Org", it is better to have it.
+  organizationId           String     @map("organization_id") // Denormalized for query perf
+  petId                    String     @map("pet_id")
+  planDefinitionId         String     @map("plan_definition_id")
+  startDate                DateTime   @map("start_date")
+  endDate                  DateTime   @map("end_date")
+  status                   PlanStatus @default(ACTIVE)
+  returnsUsed              Int        @default(0) @map("returns_used")
+  overrideExamReturnCounts Boolean?   @map("override_exam_return_counts")
 
-  pet                    Pet            @relation(fields: [petId], references: [id], onDelete: Cascade)
-  definition             PlanDefinition @relation(fields: [planDefinitionId], references: [id])
-  
-  appointments           Appointment[]
-  clinicalRecords        ClinicalRecord[]
-  laboratoryExams        LaboratoryExam[]
-  dietaryPlans           DietaryPlan[]
+  // Note: No direct relation to Organization defined here to avoid circular/confusing paths if not needed.
+  // Actually let's add it for consistency.
+  // Wait, if I add relation, I must update relation name key.
+  // I will just keep the column for now to filter. Prisma doesn't strictly need a relation object to filter by ID.
+  // But foreign key constraint is good.
+  // organization Organization @relation(...)
+  // Let's rely on PlanDefinition.organizationId for strict correctness, but having a column is useful. 
+  // I'll leave the column. 
 
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
+  pet        Pet            @relation(fields: [petId], references: [id], onDelete: Cascade)
+  definition PlanDefinition @relation(fields: [planDefinitionId], references: [id])
 
+  appointments    Appointment[]
+  clinicalRecords ClinicalRecord[]
+  laboratoryExams LaboratoryExam[]
+  dietaryPlans    DietaryPlan[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([petId])
   @@map("plans")
 }
 
 model LaboratoryExam {
-  id          String            @id @default(uuid())
-  petId       String            @map("pet_id")
-  planId      String?           @map("plan_id")
-  protocol    NutritionProtocol
-  date        DateTime          @default(now())
-  results     String
-  attachments String[]          @default([])
-  
-  pet         Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
-  plan        Plan?             @relation(fields: [planId], references: [id])
+  id             String            @id @default(uuid())
+  organizationId String            @map("organization_id")
+  petId          String            @map("pet_id")
+  planId         String?           @map("plan_id")
+  protocol       NutritionProtocol
+  date           DateTime          @default(now())
+  results        String
+  attachments    String[]          @default([])
 
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
+  organization Organization @relation("OrganizationLabs", fields: [organizationId], references: [id], onDelete: Cascade)
+  pet          Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
+  plan         Plan?        @relation(fields: [planId], references: [id])
 
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([petId])
   @@map("laboratory_exams")
 }
 
 model DietaryPlan {
-  id              String   @id @default(uuid())
-  petId           String   @map("pet_id")
-  planId          String?  @map("plan_id")
-  version         Int      @default(1)
-  isActive        Boolean  @default(true) @map("is_active")
-  observations    String?
-  startDate       DateTime @default(now()) @map("start_date")
-  
-  pet             Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
-  plan            Plan?    @relation(fields: [planId], references: [id])
-  meals           Meal[]
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  petId          String   @map("pet_id")
+  planId         String?  @map("plan_id")
+  version        Int      @default(1)
+  isActive       Boolean  @default(true) @map("is_active")
+  observations   String?
+  startDate      DateTime @default(now()) @map("start_date")
 
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  organization Organization @relation("OrganizationDietaryPlans", fields: [organizationId], references: [id], onDelete: Cascade)
+  pet          Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
+  plan         Plan?        @relation(fields: [planId], references: [id])
+  meals        Meal[]
 
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([petId])
   @@map("dietary_plans")
 }
 
 model Meal {
-  id              String   @id @default(uuid())
-  dietaryPlanId   String   @map("dietary_plan_id")
-  name            String
-  time            String?
-  order           Int      @default(0)
-  
-  dietaryPlan     DietaryPlan @relation(fields: [dietaryPlanId], references: [id], onDelete: Cascade)
-  items           MealItem[]
+  id            String  @id @default(uuid())
+  dietaryPlanId String  @map("dietary_plan_id")
+  name          String
+  time          String?
+  order         Int     @default(0)
+
+  dietaryPlan DietaryPlan @relation(fields: [dietaryPlanId], references: [id], onDelete: Cascade)
+  items       MealItem[]
 
   @@map("meals")
 }
 
 model MealItem {
-  id              String   @id @default(uuid())
-  mealId          String   @map("meal_id")
-  foodName        String   @map("food_name")
-  quantity        Float
-  unit            String
-  frequency       String?
-  notes           String?
-  substitutions   String?
-  combinations    String?
-  
-  meal            Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  id            String  @id @default(uuid())
+  mealId        String  @map("meal_id")
+  foodName      String  @map("food_name")
+  quantity      Float
+  unit          String
+  frequency     String?
+  notes         String?
+  substitutions String?
+  combinations  String?
+
+  meal Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
 
   @@map("meal_items")
 }
+
 enum MaterialType {
   EBOOK
   RECIPE
@@ -375,96 +501,54 @@ enum MaterialType {
 }
 
 model EducationalMaterial {
-  id              String   @id @default(uuid())
-  title           String
-  description     String?
-  type            MaterialType
-  content         String?  // Markdown/Text content
-  attachmentUrl   String?  // Can be a URL or a file path in the future
-  attachmentName  String?  // Original file name
-  
-  // Many-to-many relations
+  id             String       @id @default(uuid())
+  organizationId String       @map("organization_id")
+  title          String
+  description    String?
+  type           MaterialType
+  content        String? // Markdown/Text content
+  attachmentUrl  String? // Can be a URL or a file path
+  attachmentName String? // Original file name
+
+  organization    Organization     @relation("OrganizationMaterials", fields: [organizationId], references: [id], onDelete: Cascade)
   pets            Pet[]            @relation("PetMaterials")
   appointments    Appointment[]    @relation("AppointmentMaterials")
   planDefinitions PlanDefinition[] @relation("PlanDefinitionMaterials")
-  organizationId String @map("organization_id")
-  organization   Organization @relation("OrganizationMaterials", fields: [organizationId], references: [id])
 
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([organizationId])
   @@map("educational_materials")
 }
 
 model Notification {
-  id            String     @id @default(uuid())
-  userId        String     @map("user_id")
-  appointmentId String?    @map("appointment_id")
-  type          String
-  data          Json?
-  read          Boolean    @default(false)
-  scheduledAt   DateTime?  @map("scheduled_at")
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  organizationId String?   @map("organization_id") // Notifications can be org-specific or global
+  userId         String    @map("user_id")
+  appointmentId  String?   @map("appointment_id")
+  type           String
+  data           Json?
+  read           Boolean   @default(false)
+  scheduledAt    DateTime? @map("scheduled_at")
 
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointment  Appointment? @relation(fields: [appointmentId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation("OrganizationNotifications", fields: [organizationId], references: [id])
+  appointment  Appointment?  @relation(fields: [appointmentId], references: [id])
 
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([userId])
   @@map("notifications")
 }
 
-model Clinic {
-  id        String  @id @default(uuid())
-  name      String
-  address   String?
-  phone     String?
-
-  vets      Vet[] 
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("clinics")
-}
-
-model Organization {
-  id        String  @id @default(uuid())
-  name      String
-  type      OrganizationType @default(practice)
-  cnpj      String?
-  isPhysicalLocation Boolean @default(true) @map("is_physical_location")
-  address   String?
-  phone     String?
-  ownerId   String? @map("owner_id")
-  owner     User?   @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  
-  members   OrganizationMember[] @relation("OrganizationToMembers")
-  vets      Vet[] @relation("VetsToOrganization")
-  clients   Client[] @relation("OrganizationClients")
-  products  Product[] @relation("OrganizationProducts")
-  sales     Sale[] @relation("OrganizationSales")
-  plans     PlanDefinition[] @relation("OrganizationPlans")
-  materials EducationalMaterial[] @relation("OrganizationMaterials")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("organizations")
-}
-
-model OrganizationMember {
-  id        String   @id @default(uuid())
-  organizationId String @map("organization_id")
-  userId    String   @map("user_id")
-  role      OrganizationMemberRole @default(staff)
-  joinedAt  DateTime @default(now()) @map("joined_at")
-  
-  organization Organization @relation("OrganizationToMembers", fields: [organizationId], references: [id], onDelete: Cascade)
-  user      User     @relation("UserToOrganizationMember", fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@unique([organizationId, userId])
-  @@map("organization_members")
-}
+// REMOVED: model Clinic (Merged into Organization) 
+// The prompt implies Organization is the tenant. 
+// "Model OrganizationMember ... "
+// "Model Organization representa um tenant (clinic/practice/group)"
+// So "Clinic" table is redundant/legacy if we are refactoring.
+// However, the `Vet` model previously linked to `Clinic`. 
+// I should remove `Clinic` model and ensure `Vet` links to `Organization` (via `OrganizationMember` mostly, or explicit `organizationId` in `Vet` if we keep `Vet` as a resource).
+// I will remove `Clinic`.

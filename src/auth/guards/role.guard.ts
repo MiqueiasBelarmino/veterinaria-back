@@ -20,7 +20,7 @@ export class RoleGuard implements CanActivate {
     }
 
     // ROOT can access everything
-    if (user.role === 'ROOT') {
+    if (user.isSuperAdmin || user.role === 'ROOT') {
       return true;
     }
 

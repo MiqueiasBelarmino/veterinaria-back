@@ -9,18 +9,20 @@ import { UpdatePetDto } from './dto/update-pet.dto';
 export class PetsService {
   constructor(private prisma: PrismaService) {}
 
-  create(createPetDto: CreatePetDto) {
+  create(createPetDto: CreatePetDto, organizationId: string) {
     const { clientId, ...data } = createPetDto;
     return this.prisma.pet.create({
       data: {
         ...data,
-        client: { connect: { id: clientId } },
+        organizationId,
+        clientId,
       },
     });
   }
 
-  findAll() {
+  findAll(organizationId: string) {
     return this.prisma.pet.findMany({
+      where: { organizationId },
       include: { client: { include: { user: true } } },
     });
   }

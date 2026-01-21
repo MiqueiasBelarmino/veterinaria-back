@@ -9,12 +9,12 @@ export class ProductsService {
   create(data: Prisma.ProductCreateInput, organizationId: string) {
     if (!organizationId) throw new Error('Organization context required');
     
-    // Cast to any to inject organizationId
-    const dataWithOrg: any = {
+    // We assume data is compatible with CreateInput, but we override organization
+    const createData: Prisma.ProductCreateInput = {
         ...data,
-        organizationId,
+        organization: { connect: { id: organizationId } },
     };
-    return this.prisma.product.create({ data: dataWithOrg });
+    return this.prisma.product.create({ data: createData });
   }
 
   findAll(organizationId: string) {

@@ -19,6 +19,12 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('select-org')
+  selectOrg(@Request() req, @Body() body: { organizationId: string }) {
+      return this.authService.selectOrganization(req.user.id, body.organizationId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('me')
   getMe(@Request() req) {
     return req.user;

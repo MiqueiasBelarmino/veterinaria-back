@@ -3,24 +3,25 @@ import { EducationalMaterialsService } from './educational-materials.service';
 import { CreateEducationalMaterialDto } from './dto/create-educational-material.dto';
 import { UpdateEducationalMaterialDto } from './dto/update-educational-material.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ScopesGuard } from '../auth/guards/scopes.guard';
-import { OwnershipGuard } from '../auth/guards/ownership.guard';
-import { RequireScopes } from '../auth/decorators/require-scopes.decorator';
+import { OrgGuard } from '../auth/guards/org.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
+import { Role } from '../auth/decorators/role.decorator';
 import { CheckOwnership } from '../auth/decorators/check-ownership.decorator';
+import { OwnershipGuard } from '../auth/guards/ownership.guard';
 
 @Controller('educational-materials')
-@UseGuards(JwtAuthGuard, ScopesGuard, OwnershipGuard)
+@UseGuards(JwtAuthGuard, OrgGuard) // OwnershipGuard potentially specific to endpoints
 export class EducationalMaterialsController {
   constructor(private readonly educationalMaterialsService: EducationalMaterialsService) {}
 
   @Post()
-  @RequireScopes('VET')
+  @Role('VET')
   create(@Req() req, @Body() createDto: CreateEducationalMaterialDto) {
     return this.educationalMaterialsService.create(createDto, req.user.organizationId);
   }
 
   @Get()
-  @RequireScopes('VET')
+  @Role('VET')
   findAll(@Req() req) {
     return this.educationalMaterialsService.findAll(req.user.organizationId);
   }
@@ -38,13 +39,13 @@ export class EducationalMaterialsController {
   }
 
   @Patch(':id')
-  @RequireScopes('VET')
+  @Role('VET')
   update(@Req() req, @Param('id') id: string, @Body() updateDto: UpdateEducationalMaterialDto) {
     return this.educationalMaterialsService.update(id, updateDto, req.user.organizationId);
   }
 
   @Delete(':id')
-  @RequireScopes('VET')
+  @Role('VET')
   remove(@Req() req, @Param('id') id: string) {
     return this.educationalMaterialsService.remove(id, req.user.organizationId);
   }

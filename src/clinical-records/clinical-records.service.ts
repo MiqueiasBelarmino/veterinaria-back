@@ -7,14 +7,15 @@ import { Prisma } from '@prisma/client';
 export class ClinicalRecordsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createClinicalRecordDto: CreateClinicalRecordDto) {
+  async create(createClinicalRecordDto: CreateClinicalRecordDto, organizationId: string) {
     const { petId, appointmentId, planId, ...data } = createClinicalRecordDto;
 
-    const pet = await this.prisma.pet.findUnique({ where: { id: petId } });
-    if (!pet) throw new NotFoundException('Pet not found');
+    const pet = await this.prisma.pet.findFirst({ where: { id: petId, organizationId } });
+    if (!pet) throw new NotFoundException('Pet not found or not in this organization');
 
     const recordData: Prisma.ClinicalRecordCreateInput = {
       ...data,
+      organization: { connect: { id: organizationId } },
       pet: { connect: { id: petId } },
     };
 
