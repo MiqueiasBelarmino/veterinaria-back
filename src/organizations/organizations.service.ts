@@ -1,0 +1,462 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateOrganizationDto } from './dto/create-organization.dto';
+import { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { AddMemberDto } from './dto/add-member.dto';
+import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
+
+@Injectable()
+export class OrganizationService {
+  constructor(private prisma: PrismaService) {}
+
+  // ============= ORGANIZATION CRUD =============
+
+  async create(
+    createOrgDto: CreateOrganizationDto,
+    ownerUserId?: string,
+  ) {
+    const organization = await this.prisma.organization.create({
+      data: {
+        name: createOrgDto.name,
+        type: createOrgDto.type,
+        cnpj: createOrgDto.cnpj,
+        isPhysicalLocation:
+          createOrgDto.isPhysicalLocation !== undefined
+            ? createOrgDto.isPhysicalLocation
+            : true,
+        address: createOrgDto.address,
+        phone: createOrgDto.phone,
+        ownerId: ownerUserId || null,
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Automatically add owner as a member with 'owner' role if owner exists
+    if (ownerUserId) {
+      await this.prisma.organizationMember.create({
+        data: {
+          organizationId: organization.id,
+          userId: ownerUserId,
+          role: 'owner',
+        },
+      });
+    }
+
+    return organization;
+  }
+
+  async findAll() {
+    return await this.prisma.organization.findMany({
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        vets: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async findById(organizationId: string) {
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+        },
+        vets: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!organization) {
+      throw new NotFoundException(
+        `Organization with id ${organizationId} not found`,
+      );
+    }
+
+    return organization;
+  }
+
+  async update(
+    organizationId: string,
+    updateOrgDto: UpdateOrganizationDto,
+  ) {
+    const organization = await this.findById(organizationId);
+
+    return await this.prisma.organization.update({
+      where: { id: organizationId },
+      data: {
+        name: updateOrgDto.name || organization.name,
+        type: updateOrgDto.type || organization.type,
+        cnpj: updateOrgDto.cnpj || organization.cnpj,
+        isPhysicalLocation:
+          updateOrgDto.isPhysicalLocation !== undefined
+            ? updateOrgDto.isPhysicalLocation
+            : organization.isPhysicalLocation,
+        address: updateOrgDto.address || organization.address,
+        phone: updateOrgDto.phone || organization.phone,
+        ownerId: updateOrgDto.ownerId !== undefined ? updateOrgDto.ownerId : organization.ownerId,
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async delete(organizationId: string) {
+    const organization = await this.findById(organizationId);
+
+    // Delete all members first
+    await this.prisma.organizationMember.deleteMany({
+      where: { organizationId },
+    });
+
+    // Update vets to remove organization reference
+    await this.prisma.vet.updateMany({
+      where: { organizationId },
+      data: { organizationId: null },
+    });
+
+    // Delete organization
+    return await this.prisma.organization.delete({
+      where: { id: organizationId },
+    });
+  }
+
+  // ============= MEMBER MANAGEMENT =============
+
+  async getMembers(organizationId: string) {
+    await this.findById(organizationId); // Verify org exists
+
+    return await this.prisma.organizationMember.findMany({
+      where: { organizationId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: {
+        joinedAt: 'desc',
+      },
+    });
+  }
+
+  async addMember(
+    organizationId: string,
+    addMemberDto: AddMemberDto,
+  ) {
+    const organization = await this.findById(organizationId);
+
+    // Verify user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: addMemberDto.userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with id ${addMemberDto.userId} not found`);
+    }
+
+    // Check if user is already a member
+    const existingMember = await this.prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId,
+          userId: addMemberDto.userId,
+        },
+      },
+    });
+
+    if (existingMember) {
+      throw new BadRequestException(
+        'User is already a member of this organization',
+      );
+    }
+
+    return await this.prisma.organizationMember.create({
+      data: {
+        organizationId,
+        userId: addMemberDto.userId,
+        role: addMemberDto.role,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async removeMember(organizationId: string, userId: string) {
+    const organization = await this.findById(organizationId);
+
+    const member = await this.prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId,
+          userId,
+        },
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found in this organization');
+    }
+
+    // Prevent removing the owner
+    if (member.role === 'owner' && organization.ownerId === userId) {
+      throw new BadRequestException(
+        'Cannot remove the owner from the organization',
+      );
+    }
+
+    return await this.prisma.organizationMember.delete({
+      where: {
+        organizationId_userId: {
+          organizationId,
+          userId,
+        },
+      },
+    });
+  }
+
+  async updateMemberRole(
+    organizationId: string,
+    userId: string,
+    updateRoleDto: UpdateMemberRoleDto,
+  ) {
+    const organization = await this.findById(organizationId);
+
+    const member = await this.prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId,
+          userId,
+        },
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found in this organization');
+    }
+
+    // Prevent downgrading the owner
+    if (member.role === 'owner' && updateRoleDto.role !== 'owner') {
+      throw new BadRequestException(
+        'Cannot change the role of the organization owner',
+      );
+    }
+
+    return await this.prisma.organizationMember.update({
+      where: {
+        organizationId_userId: {
+          organizationId,
+          userId,
+        },
+      },
+      data: {
+        role: updateRoleDto.role,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  // ============= VET MANAGEMENT =============
+
+  async getVets(organizationId: string) {
+    await this.findById(organizationId); // Verify org exists
+
+    return await this.prisma.vet.findMany({
+      where: { organizationId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  // ============= UTILITY METHODS =============
+
+  async checkOwnership(organizationId: string, userId: string, userRole?: string) {
+    if (userRole === 'ROOT') {
+      return await this.findById(organizationId);
+    }
+
+    const organization = await this.findById(organizationId);
+
+    if (organization.ownerId !== userId) {
+      throw new ForbiddenException(
+        'You do not have permission to manage this organization',
+      );
+    }
+
+    return organization;
+  }
+
+  async checkMembership(organizationId: string, userId: string, userRole?: string) {
+    if (userRole === 'ROOT') {
+       // ROOT simulates being an owner for permission checks, or we return a mock member object
+       // The controller checks: if (member.role !== 'owner' && member.role !== 'admin')
+       // So we should return a mock member with 'owner' role.
+       return {
+         id: 'root-bypass',
+         organizationId,
+         userId,
+         role: 'owner',
+         joinedAt: new Date(),
+         createdAt: new Date(),
+         updatedAt: new Date(),
+       } as any;
+    }
+
+    const member = await this.prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId,
+          userId,
+        },
+      },
+    });
+
+    if (!member) {
+      throw new ForbiddenException(
+        'You are not a member of this organization',
+      );
+    }
+
+    return member;
+  }
+
+  async getUserOrganizations(userId: string) {
+    return await this.prisma.organizationMember.findMany({
+      where: { userId },
+      include: {
+        organization: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+}

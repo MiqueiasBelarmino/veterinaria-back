@@ -38,6 +38,19 @@ enum NutritionProtocol {
   DIABETES
 }
 
+enum OrganizationType {
+  clinic
+  practice
+  group
+}
+
+enum OrganizationMemberRole {
+  owner
+  admin
+  vet
+  staff
+}
+
 
 model User {
   id        String   @id @default(uuid())
@@ -51,6 +64,8 @@ model User {
   client    Client? @relation("UserToClient")
   vet       Vet?
   notifications Notification[]
+  organizationMembers OrganizationMember[] @relation("UserToOrganizationMember")
+  ownedOrganizations Organization[] @relation("OrganizationOwner")
 
   @@map("users")
 }
@@ -63,6 +78,8 @@ model Vet {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   clinicId  String?  @map("clinic_id")
   clinic    Clinic?  @relation(fields: [clinicId], references: [id])
+  organizationId String? @map("organization_id")
+  organization Organization? @relation("VetsToOrganization", fields: [organizationId], references: [id])
 
   prescriptions Prescription[]
   appointments    Appointment[]
@@ -80,6 +97,8 @@ model Client {
   user      User?    @relation("UserToClient", fields: [userId], references: [id], onDelete: SetNull)
   pets      Pet[]
   sales     Sale[]
+  organizationId String @map("organization_id")
+  organization   Organization @relation("OrganizationClients", fields: [organizationId], references: [id])
 
   @@map("clients")
 }
@@ -197,6 +216,8 @@ model Product {
   category    String?
   
   saleItems   SaleItem[]
+  organizationId String @map("organization_id")
+  organization   Organization @relation("OrganizationProducts", fields: [organizationId], references: [id])
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -212,6 +233,8 @@ model Sale {
   
   client    Client?  @relation(fields: [clientId], references: [id])
   items     SaleItem[]
+  organizationId String @map("organization_id")
+  organization   Organization @relation("OrganizationSales", fields: [organizationId], references: [id])
 
   @@map("sales")
 }
@@ -240,6 +263,8 @@ model PlanDefinition {
   
   plans            Plan[]
   educationalMaterials EducationalMaterial[] @relation("PlanDefinitionMaterials")
+  organizationId String @map("organization_id")
+  organization   Organization @relation("OrganizationPlans", fields: [organizationId], references: [id])
 
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
@@ -362,6 +387,8 @@ model EducationalMaterial {
   pets            Pet[]            @relation("PetMaterials")
   appointments    Appointment[]    @relation("AppointmentMaterials")
   planDefinitions PlanDefinition[] @relation("PlanDefinitionMaterials")
+  organizationId String @map("organization_id")
+  organization   Organization @relation("OrganizationMaterials", fields: [organizationId], references: [id])
 
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -398,4 +425,46 @@ model Clinic {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("clinics")
+}
+
+model Organization {
+  id        String  @id @default(uuid())
+  name      String
+  type      OrganizationType @default(practice)
+  cnpj      String?
+  isPhysicalLocation Boolean @default(true) @map("is_physical_location")
+  address   String?
+  phone     String?
+  ownerId   String? @map("owner_id")
+  owner     User?   @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  
+  members   OrganizationMember[] @relation("OrganizationToMembers")
+  vets      Vet[] @relation("VetsToOrganization")
+  clients   Client[] @relation("OrganizationClients")
+  products  Product[] @relation("OrganizationProducts")
+  sales     Sale[] @relation("OrganizationSales")
+  plans     PlanDefinition[] @relation("OrganizationPlans")
+  materials EducationalMaterial[] @relation("OrganizationMaterials")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id        String   @id @default(uuid())
+  organizationId String @map("organization_id")
+  userId    String   @map("user_id")
+  role      OrganizationMemberRole @default(staff)
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  
+  organization Organization @relation("OrganizationToMembers", fields: [organizationId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserToOrganizationMember", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
 }

@@ -18,12 +18,14 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ClinicsModule } from './clinics/clinics.module';
 import { AdminModule } from './admin/admin.module';
+import { OrganizationModule } from './organizations/organizations.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     AuthModule,
     AdminModule,
+    OrganizationModule,
     ClinicsModule,
     UsersModule,
     ClientsModule,

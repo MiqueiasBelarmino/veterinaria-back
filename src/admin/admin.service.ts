@@ -38,6 +38,29 @@ export class AdminService {
     return user;
   }
 
+  async createUser(data: { name: string; email: string; password: string; role?: 'VET' | 'CLIENT' | 'ADMIN' | 'ROOT' }) {
+    const existingUser = await this.prisma.user.findUnique({ where: { email: data.email } });
+    if (existingUser) throw new BadRequestException('Email já cadastrado');
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    return this.prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        password: hashedPassword,
+        role: data.role || 'CLIENT',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+  }
+
   async updateUserRole(userId: string, newRole: 'VET' | 'CLIENT' | 'ADMIN' | 'ROOT') {
     // Prevent downgrading ROOT users
     const user = await this.prisma.user.findUnique({ where: { id: userId } });

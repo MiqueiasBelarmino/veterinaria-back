@@ -21,13 +21,32 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
-    const user = await this.validateUser(email, password);
+    // Validate credentials (basic user check)
+    const validUser = await this.validateUser(email, password);
+    
+    // Fetch full profile to determin organization context
+    const user = await this.usersService.findWithProfile(email);
+
+    if (!user) {
+        throw new UnauthorizedException('Usuário não encontrado');
+    }
+
+    let organizationId: string | null = null;
+
+    if (user.role === 'VET' && user.vet && (user.vet as any).organizationId) {
+      organizationId = (user.vet as any).organizationId;
+    } else if (user.role === 'CLIENT' && user.client && (user.client as any).organizationId) {
+      organizationId = (user.client as any).organizationId;
+    } else if (user.organizationMembers && user.organizationMembers.length > 0) {
+      organizationId = (user.organizationMembers[0] as any).organizationId;
+    }
 
     const payload = {
       sub: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      organizationId,
     };
     const token = this.jwtService.sign(payload);
 
@@ -38,6 +57,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         role: user.role,
+        organizationId,
       },
     };
   }

@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Req,
   Delete,
   UseGuards,
 } from '@nestjs/common';
@@ -18,27 +19,27 @@ export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
 
   @Post()
-  create(@Body() createClientDto: CreateClientDto) {
-    return this.clientsService.create(createClientDto);
+  create(@Req() req, @Body() createClientDto: CreateClientDto) {
+    return this.clientsService.create(createClientDto, req.user.organizationId);
   }
 
   @Get()
-  findAll() {
-    return this.clientsService.findAll();
+  findAll(@Req() req) {
+    return this.clientsService.findAll(req.user.organizationId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.clientsService.findOne(id);
+  findOne(@Req() req, @Param('id') id: string) {
+    return this.clientsService.findOne(id, req.user.organizationId);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: any) {
-    return this.clientsService.update(id, body);
+  update(@Req() req, @Param('id') id: string, @Body() body: any) {
+    return this.clientsService.update(id, body, req.user.organizationId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.clientsService.remove(id);
+  remove(@Req() req, @Param('id') id: string) {
+    return this.clientsService.remove(id, req.user.organizationId);
   }
 }

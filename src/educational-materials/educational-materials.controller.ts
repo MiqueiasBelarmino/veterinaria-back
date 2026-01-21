@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
 import { EducationalMaterialsService } from './educational-materials.service';
 import { CreateEducationalMaterialDto } from './dto/create-educational-material.dto';
 import { UpdateEducationalMaterialDto } from './dto/update-educational-material.dto';
@@ -15,37 +15,37 @@ export class EducationalMaterialsController {
 
   @Post()
   @RequireScopes('VET')
-  create(@Body() createDto: CreateEducationalMaterialDto) {
-    return this.educationalMaterialsService.create(createDto);
+  create(@Req() req, @Body() createDto: CreateEducationalMaterialDto) {
+    return this.educationalMaterialsService.create(createDto, req.user.organizationId);
   }
 
   @Get()
   @RequireScopes('VET')
-  findAll() {
-    return this.educationalMaterialsService.findAll();
+  findAll(@Req() req) {
+    return this.educationalMaterialsService.findAll(req.user.organizationId);
   }
 
   @Get(':id')
   @CheckOwnership({ paramName: 'id', resourceType: 'educationalMaterial' })
-  findOne(@Param('id') id: string) {
-    return this.educationalMaterialsService.findOne(id);
+  findOne(@Req() req, @Param('id') id: string) {
+    return this.educationalMaterialsService.findOne(id, req.user.organizationId);
   }
 
   @Get('pet/:petId')
   @CheckOwnership({ paramName: 'petId', resourceType: 'pet' })
-  findByPet(@Param('petId') petId: string) {
-    return this.educationalMaterialsService.findByPet(petId);
+  findByPet(@Req() req, @Param('petId') petId: string) {
+    return this.educationalMaterialsService.findByPet(petId, req.user.organizationId);
   }
 
   @Patch(':id')
   @RequireScopes('VET')
-  update(@Param('id') id: string, @Body() updateDto: UpdateEducationalMaterialDto) {
-    return this.educationalMaterialsService.update(id, updateDto);
+  update(@Req() req, @Param('id') id: string, @Body() updateDto: UpdateEducationalMaterialDto) {
+    return this.educationalMaterialsService.update(id, updateDto, req.user.organizationId);
   }
 
   @Delete(':id')
   @RequireScopes('VET')
-  remove(@Param('id') id: string) {
-    return this.educationalMaterialsService.remove(id);
+  remove(@Req() req, @Param('id') id: string) {
+    return this.educationalMaterialsService.remove(id, req.user.organizationId);
   }
 }

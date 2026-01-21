@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { SalesService } from './sales.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
@@ -11,13 +11,13 @@ export class SalesController {
 
   @Post()
   @RequireScopes('VET')
-  create(@Body() body: any) {
-    return this.salesService.create(body);
+  create(@Req() req, @Body() body: any) {
+    return this.salesService.create(body, req.user.organizationId);
   }
 
   @Get()
   @RequireScopes('VET')
-  findAll() {
-    return this.salesService.findAll();
+  findAll(@Req() req) {
+    return this.salesService.findAll(req.user.organizationId);
   }
 }

@@ -9,7 +9,9 @@ export class SalesService {
   async create(data: {
     clientId?: string;
     items: { productId: string; quantity: number }[];
-  }) {
+  }, organizationId: string) {
+    if (!organizationId) throw new Error('Organization context required');
+
     return this.prisma.$transaction(async (tx) => {
       let total = 0;
       const saleItems: {
@@ -25,6 +27,12 @@ export class SalesService {
 
         if (!product)
           throw new Error(`Produto ${item.productId} não encontrado`);
+        
+        // Enforce organization scope on products
+        if ((product as any).organizationId !== organizationId) {
+             throw new Error(`Produto ${product.name} não pertence à organização atual`);
+        }
+
         if (product.stock < item.quantity) {
           throw new Error(
             `Estoque insuficiente para o produto: ${product.name}`,
@@ -47,21 +55,31 @@ export class SalesService {
         });
       }
 
-      return tx.sale.create({
-        data: {
+      // Cast to any for organizationId
+      const saleData: any = {
           clientId: data.clientId,
           total,
+          organization: { connect: { id: organizationId } },
           items: {
             create: saleItems,
           },
-        },
+      };
+
+      return tx.sale.create({
+        data: saleData,
         include: { items: true },
       });
     });
   }
 
-  findAll() {
+  findAll(organizationId: string) {
+    if (!organizationId) return [];
+    
+    // Cast where clause
+    const where: any = { organizationId };
+
     return this.prisma.sale.findMany({
+      where,
       include: {
         items: { include: { product: true } },
         client: { include: { user: true } },
@@ -69,10 +87,15 @@ export class SalesService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.sale.findUnique({
+  async findOne(id: string, organizationId: string) {
+    const sale = await this.prisma.sale.findUnique({
       where: { id },
       include: { items: { include: { product: true } } },
     });
+
+    if (sale && organizationId && (sale as any).organizationId !== organizationId) {
+        return null;
+    }
+    return sale;
   }
 }

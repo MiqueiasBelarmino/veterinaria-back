@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
@@ -11,13 +11,13 @@ export class ProductsController {
 
   @Post()
   @RequireScopes('VET')
-  create(@Body() body: any) {
-    return this.productsService.create(body);
+  create(@Req() req, @Body() body: any) {
+    return this.productsService.create(body, req.user.organizationId);
   }
 
   @Get()
   @RequireScopes('VET')
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Req() req) {
+    return this.productsService.findAll(req.user.organizationId);
   }
 }

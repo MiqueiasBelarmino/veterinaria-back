@@ -1,0 +1,23 @@
+[Nest] 2748  - 20/01/2026, 21:21:00   ERROR [NotificationsScheduler] Error running reminder job
+[Nest] 2748  - 20/01/2026, 21:21:00   ERROR [NotificationsScheduler] PrismaClientKnownRequestError: 
+Invalid `this.prisma.appointment.findMany()` invocation in
+C:\Projetos\clinica-animal\vet-back\src\notifications\notifications.scheduler.ts:37:60
+
+  34 const targetStart = new Date(now.getTime() + hours * 60 * 60 * 1000);
+  35 const targetEnd = new Date(targetStart.getTime() + windowMinutes * 60 * 1000);
+  36
+→ 37 const appointments = await this.prisma.appointment.findMany(
+The column `appointments.vet_id` does not exist in the current database.
+    at ei.handleRequestError (C:\Projetos\clinica-animal\vet-back\node_modules\@prisma\client\src\runtime\RequestHandler.ts:228:13)
+    at ei.handleAndLogRequestError (C:\Projetos\clinica-animal\vet-back\node_modules\@prisma\client\src\runtime\RequestHandler.ts:174:12)
+    at ei.request (C:\Projetos\clinica-animal\vet-back\node_modules\@prisma\client\src\runtime\RequestHandler.ts:143:12)
+    at async a (C:\Projetos\clinica-animal\vet-back\node_modules\@prisma\client\src\runtime\getPrismaClient.ts:833:24)
+    at async NotificationsScheduler.remindUpcomingAppointments (C:\Projetos\clinica-animal\vet-back\src\notifications\notifications.scheduler.ts:37:30)
+    at async CronJob.<anonymous> (C:\Projetos\clinica-animal\vet-back\node_modules\@nestjs\schedule\dist\schedule.explorer.js:119:17) {
+  code: 'P2022',
+  meta: {
+    modelName: 'Appointment',
+    column: 'appointments.vet_id'
+  },
+  clientVersion: '6.19.2'
+}

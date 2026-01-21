@@ -1,17 +1,19 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import * as bcrypt from 'bcrypt';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ClientsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateClientDto) {
+  async create(dto: CreateClientDto, organizationId: string) {
+    if (!organizationId) throw new ConflictException('Organização não identificada');
+
     const { createAccount, password, ...clientData } = dto;
 
     if (createAccount && password && clientData.email) {
-      // Check if user already exists
       const existingUser = await this.prisma.user.findUnique({
         where: { email: clientData.email },
       });
@@ -22,12 +24,13 @@ export class ClientsService {
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      return this.prisma.client.create({
-        data: {
+      // Cast to any to bypass stale types for organizationId
+      const data: any = {
           name: clientData.name,
           email: clientData.email,
           phone: clientData.phone,
           address: clientData.address,
+          organization: { connect: { id: organizationId } },
           user: {
             create: {
               email: clientData.email,
@@ -36,44 +39,69 @@ export class ClientsService {
               role: 'CLIENT',
             },
           },
-        },
+      };
+
+      return this.prisma.client.create({
+        data,
         include: { user: true },
       });
     }
 
-    return this.prisma.client.create({
-      data: {
+    const data: any = {
         name: clientData.name,
         email: clientData.email,
         phone: clientData.phone,
         address: clientData.address,
-      },
+        organization: { connect: { id: organizationId } },
+    };
+
+    return this.prisma.client.create({
+      data,
       include: { user: true },
     });
   }
 
-  findAll() {
+  findAll(organizationId: string) {
+    if (!organizationId) return [];
+    // Cast where clause
+    const where: any = { organizationId };
     return this.prisma.client.findMany({
+      where,
       include: { user: true, pets: true },
       orderBy: { name: 'asc' },
     });
   }
 
   findByUserId(userId: string) {
+    // This is used internally mostly, might not need strict org filter if IDs are UUIDs, but safety is good.
+    // However, findByUserId is usually for looking up the profile of the CURRENT user.
     return this.prisma.client.findUnique({
       where: { userId },
       include: { user: true },
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.client.findUnique({
+  async findOne(id: string, organizationId: string) {
+    const client = await this.prisma.client.findUnique({
       where: { id },
       include: { user: true, pets: true },
     });
+
+    // Cast client to any to access organizationId
+    const clientAny = client as any;
+
+    if (!client || (organizationId && clientAny.organizationId !== organizationId)) {
+        if (organizationId && clientAny?.organizationId !== organizationId) {
+             throw new NotFoundException('Cliente não encontrado');
+        }
+        if (!client) throw new NotFoundException('Cliente não encontrado');
+    }
+    return client;
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: any, organizationId: string) {
+    await this.findOne(id, organizationId); // Verify existence and permission
+
     const { createAccount, password, ...clientData } = data;
 
     // Fetch current state to check for existing user
@@ -121,15 +149,10 @@ export class ClientsService {
     });
   }
 
-  async remove(id: string) {
-    const client = await this.prisma.client.findUnique({
-      where: { id },
-      select: { userId: true },
-    });
+  async remove(id: string, organizationId: string) {
+    const client = await this.findOne(id, organizationId); // Ensure ownership
 
     if (client?.userId) {
-      // Deleting the user will set client.userId to null due to SetNull in schema
-      // but we want to delete the client anyway.
       await this.prisma.user.delete({
         where: { id: client.userId },
       });

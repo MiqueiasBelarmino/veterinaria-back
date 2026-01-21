@@ -10,7 +10,7 @@ export class UsersService {
     name: string;
     email: string;
     password: string;
-    role?: 'VET' | 'CLIENT';
+    role?: 'VET' | 'CLIENT' | 'ADMIN' | 'ROOT';
   }) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
     return this.prisma.user.create({
@@ -37,5 +37,18 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuário não encontrado');
     return user;
+  }
+
+  async findWithProfile(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+      include: {
+        vet: true,
+        client: true,
+        organizationMembers: {
+          take: 1, // Basic single-tenant assumption for now
+        },
+      },
+    });
   }
 }

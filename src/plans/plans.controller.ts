@@ -8,6 +8,7 @@ import {
   Param,
   UsePipes,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { PlansService } from './plans.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
@@ -24,31 +25,31 @@ export class PlansController {
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
   @RequireScopes('VET')
-  create(@Body() createPlanDto: CreatePlanDto) {
-    return this.plansService.create(createPlanDto);
+  create(@Req() req, @Body() createPlanDto: CreatePlanDto) {
+    return this.plansService.create(createPlanDto, req.user.organizationId);
   }
 
   @Get('pet/:petId')
   @RequireScopes('plans:own')
-  findAllByPet(@Param('petId') petId: string) {
-    return this.plansService.findAllByPet(petId);
+  findAllByPet(@Req() req, @Param('petId') petId: string) {
+    return this.plansService.findAllByPet(petId, req.user.organizationId);
   }
 
   @Get('definitions')
-  findAllDefinitions() {
-    return this.plansService.findAllDefinitions();
+  findAllDefinitions(@Req() req) {
+    return this.plansService.findAllDefinitions(req.user.organizationId);
   }
 
   @Get(':id')
   @RequireScopes('plans:own')
-  findOne(@Param('id') id: string) {
-    return this.plansService.findOne(id);
+  findOne(@Req() req, @Param('id') id: string) {
+    return this.plansService.findOne(id, req.user.organizationId);
   }
 
   @Patch(':id')
   @UsePipes(new ValidationPipe({ transform: true }))
   @RequireScopes('plans:own')
-  update(@Param('id') id: string, @Body() updatePlanDto: UpdatePlanDto) {
-    return this.plansService.update(id, updatePlanDto);
+  update(@Req() req, @Param('id') id: string, @Body() updatePlanDto: UpdatePlanDto) {
+    return this.plansService.update(id, updatePlanDto, req.user.organizationId);
   }
 }

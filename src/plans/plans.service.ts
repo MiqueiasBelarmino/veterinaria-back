@@ -7,17 +7,33 @@ import { UpdatePlanDto } from './dto/update-plan.dto';
 export class PlansService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createPlanDto: CreatePlanDto) {
+  async create(createPlanDto: CreatePlanDto, organizationId: string) {
+    if (!organizationId) throw new Error('Organization context required');
+
     const { petId, planDefinitionId, ...data } = createPlanDto;
 
-    // Validate existence
-    const pet = await this.prisma.pet.findUnique({ where: { id: petId } });
-    if (!pet) throw new NotFoundException('Pet not found');
+    // Validate Pet and Organization
+    const pet = await this.prisma.pet.findUnique({ 
+        where: { id: petId },
+        include: { client: true }
+    });
+    
+     if (!pet) throw new NotFoundException('Pet not found');
+
+    // Enforce Pet belongs to Org
+    if (organizationId && (pet.client as any).organizationId !== organizationId) {
+         throw new NotFoundException('Pet not found'); // Hide cross-tenant pets
+    }
 
     const definition = await this.prisma.planDefinition.findUnique({
       where: { id: planDefinitionId },
     });
     if (!definition) throw new NotFoundException('PlanDefinition not found');
+
+    // Enforce Definition belongs to Org
+    if (organizationId && (definition as any).organizationId !== organizationId) {
+         throw new NotFoundException('PlanDefinition not found');
+    }
 
     return this.prisma.plan.create({
       data: {
@@ -31,38 +47,53 @@ export class PlansService {
     });
   }
 
-  async findAllByPet(petId: string) {
-    return this.prisma.plan.findMany({
+  async findAllByPet(petId: string, organizationId: string) {
+    const plans = await this.prisma.plan.findMany({
       where: { petId },
       include: {
         definition: true,
+        pet: { include: { client: true } }
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
+
+    if (organizationId) {
+         return plans.filter(p => (p.pet.client as any).organizationId === organizationId);
+    }
+    return plans;
   }
 
-  async findAllDefinitions() {
+  async findAllDefinitions(organizationId: string) {
+    if (!organizationId) return [];
+    
+    // Cast any
+    const where: any = { isActive: true, organizationId };
     return this.prisma.planDefinition.findMany({
-      where: { isActive: true },
+      where,
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, organizationId: string) {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
-      include: { definition: true, pet: true },
+      include: { definition: true, pet: { include: { client: true } } },
     });
     if (!plan) throw new NotFoundException('Plan not found');
+    
+    if (organizationId && (plan.pet.client as any).organizationId !== organizationId) {
+         throw new NotFoundException('Plan not found');
+    }
+
     return plan;
   }
 
-  async update(id: string, updatePlanDto: UpdatePlanDto) {
-    const { petId, planDefinitionId, ...data } = updatePlanDto;
-    // Note: Switching pet or definition is rare but possible if implemented.
-    // For now just update fields.
+  async update(id: string, updatePlanDto: UpdatePlanDto, organizationId: string) {
+    await this.findOne(id, organizationId); // Check permission
 
+    const { petId, planDefinitionId, ...data } = updatePlanDto;
+    
     return this.prisma.plan.update({
       where: { id },
       data: {
