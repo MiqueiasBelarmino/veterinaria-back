@@ -14,12 +14,12 @@ import { PlansService } from './plans.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { OrgGuard } from '../auth/guards/org.guard';
-import { RoleGuard } from '../auth/guards/role.guard';
+import { OrgContextGuard } from '../auth/guards/org.guard';
+import { RolesGuard } from '../auth/guards/role.guard';
 import { Role } from '../auth/decorators/role.decorator';
 
 @Controller('plans')
-@UseGuards(JwtAuthGuard, OrgGuard, RoleGuard)
+@UseGuards(JwtAuthGuard, OrgContextGuard, RolesGuard)
 export class PlansController {
   constructor(private readonly plansService: PlansService) {}
 
@@ -27,13 +27,13 @@ export class PlansController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @Role('VET') // Admin/Vet
   create(@Req() req, @Body() createPlanDto: CreatePlanDto) {
-    return this.plansService.create(createPlanDto, req.user.organizationId);
+    return this.plansService.create(createPlanDto, req.user.activeOrganizationId);
   }
 
   @Get('pet/:petId')
   @Role('VET') // Owner/Vet
   findAllByPet(@Req() req, @Param('petId') petId: string) {
-    return this.plansService.findAllByPet(petId, req.user.organizationId);
+    return this.plansService.findAllByPet(petId, req.user.activeOrganizationId);
   }
 
   @Get('definitions')
@@ -42,19 +42,19 @@ export class PlansController {
   @Role('VET') 
   findAllDefinitions(@Req() req) {
     // If Client, we might want to allow this? For now restrict.
-    return this.plansService.findAllDefinitions(req.user.organizationId);
+    return this.plansService.findAllDefinitions(req.user.activeOrganizationId);
   }
 
   @Get(':id')
   @Role('VET') // or Owner
   findOne(@Req() req, @Param('id') id: string) {
-    return this.plansService.findOne(id, req.user.organizationId);
+    return this.plansService.findOne(id, req.user.activeOrganizationId);
   }
 
   @Patch(':id')
   @UsePipes(new ValidationPipe({ transform: true }))
   @Role('VET')
   update(@Req() req, @Param('id') id: string, @Body() updatePlanDto: UpdatePlanDto) {
-    return this.plansService.update(id, updatePlanDto, req.user.organizationId);
+    return this.plansService.update(id, updatePlanDto, req.user.activeOrganizationId);
   }
 }

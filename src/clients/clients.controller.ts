@@ -20,26 +20,26 @@ export class ClientsController {
 
   @Post()
   create(@Req() req, @Body() createClientDto: CreateClientDto) {
-    return this.clientsService.create(createClientDto, req.user.organizationId);
+    return this.clientsService.create(createClientDto, req.user.activeOrganizationId);
   }
 
   @Get()
   findAll(@Req() req) {
-    return this.clientsService.findAll(req.user.organizationId);
+    return this.clientsService.findAll(req.user.activeOrganizationId);
   }
 
   @Get(':id')
   findOne(@Req() req, @Param('id') id: string) {
-    return this.clientsService.findOne(id, req.user.organizationId);
+    return this.clientsService.findOne(id, req.user.activeOrganizationId);
   }
 
   @Patch(':id')
   update(@Req() req, @Param('id') id: string, @Body() body: any) {
-    return this.clientsService.update(id, body, req.user.organizationId);
+    return this.clientsService.update(id, body, req.user.activeOrganizationId);
   }
 
   @Delete(':id')
   remove(@Req() req, @Param('id') id: string) {
-    return this.clientsService.remove(id, req.user.organizationId);
+    return this.clientsService.remove(id, req.user.activeOrganizationId);
   }
 }

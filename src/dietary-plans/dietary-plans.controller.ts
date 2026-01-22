@@ -2,14 +2,14 @@ import { Controller, Get, Post, Body, Param, UsePipes, ValidationPipe, UseGuards
 import { DietaryPlansService } from './dietary-plans.service';
 import { CreateDietaryPlanDto } from './dto/create-dietary-plan.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { OrgGuard } from '../auth/guards/org.guard';
-import { RoleGuard } from '../auth/guards/role.guard';
+import { OrgContextGuard } from '../auth/guards/org.guard';
+import { RolesGuard } from '../auth/guards/role.guard';
 import { Role } from '../auth/decorators/role.decorator';
 import { OwnershipGuard } from '../auth/guards/ownership.guard';
 import { CheckOwnership } from '../auth/decorators/check-ownership.decorator';
 
 @Controller('dietary-plans')
-@UseGuards(JwtAuthGuard, OrgGuard) // OwnershipGuard potentially conditional
+@UseGuards(JwtAuthGuard, OrgContextGuard) // OwnershipGuard potentially conditional
 export class DietaryPlansController {
   constructor(private readonly dietaryPlansService: DietaryPlansService) {}
 
@@ -17,7 +17,7 @@ export class DietaryPlansController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @Role('VET')
   create(@Req() req, @Body() createDto: CreateDietaryPlanDto) {
-    return this.dietaryPlansService.create(createDto, req.user.organizationId);
+    return this.dietaryPlansService.create(createDto, req.user.activeOrganizationId);
   }
 
   @Get('pet/:petId')

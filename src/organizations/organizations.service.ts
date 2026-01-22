@@ -424,8 +424,8 @@ export class OrganizationService {
 
   // ============= UTILITY METHODS =============
 
-  async checkOwnership(organizationId: string, userId: string, userRole?: string) {
-    if (userRole === 'ROOT') {
+  async checkOwnership(organizationId: string, userId: string, isRoot?: boolean) {
+    if (isRoot) {
       return await this.findById(organizationId);
     }
 
@@ -440,16 +440,14 @@ export class OrganizationService {
     return organization;
   }
 
-  async checkMembership(organizationId: string, userId: string, userRole?: string) {
-    if (userRole === 'ROOT') {
-       // ROOT simulates being an owner for permission checks, or we return a mock member object
-       // The controller checks: if (member.role !== 'owner' && member.role !== 'admin')
-       // So we should return a mock member with 'owner' role.
+  async checkMembership(organizationId: string, userId: string, isRoot?: boolean) {
+    if (isRoot) {
+       // ROOT simulates being an owner for permission checks.
        return {
          id: 'root-bypass',
          organizationId,
          userId,
-         role: 'owner',
+         role: 'OWNER',
          joinedAt: new Date(),
          createdAt: new Date(),
          updatedAt: new Date(),
@@ -492,5 +490,34 @@ export class OrganizationService {
     });
 
     return members.map((member) => member.organization);
+  }
+
+  async getUserMemberships(userId: string) {
+    const members = await this.prisma.organizationMember.findMany({
+      where: { userId, status: 'ACTIVE' },
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            cnpj: true,
+            isPhysicalLocation: true,
+            address: true,
+            phone: true,
+          },
+        },
+      },
+      orderBy: {
+        joinedAt: 'desc',
+      },
+    });
+
+    return members.map((member) => ({
+      organizationId: member.organizationId,
+      role: member.role,
+      status: member.status,
+      organization: member.organization,
+    }));
   }
 }

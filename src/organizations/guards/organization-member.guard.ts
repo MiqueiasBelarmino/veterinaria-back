@@ -50,14 +50,14 @@ export class OrganizationMemberGuard implements CanActivate {
       }
 
       // If owner is required
-      if (requiredRole.allowOwner === false && member.role === 'owner') {
+      if (requiredRole.allowOwner === false && member.role === 'OWNER') {
         throw new ForbiddenException(
           'Owner role is not allowed for this action',
         );
       }
 
       // If admin is required
-      if (requiredRole.allowAdmin === false && member.role === 'admin') {
+      if (requiredRole.allowAdmin === false && member.role === 'ADMIN') {
         throw new ForbiddenException(
           'Admin role is not allowed for this action',
         );

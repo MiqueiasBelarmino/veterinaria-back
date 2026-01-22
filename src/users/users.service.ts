@@ -10,7 +10,7 @@ export class UsersService {
     name: string;
     email: string;
     password: string;
-    isSuperAdmin?: boolean;
+    isRoot?: boolean;
   }) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
     return this.prisma.user.create({
@@ -18,14 +18,14 @@ export class UsersService {
         name: data.name,
         email: data.email,
         password: hashedPassword,
-        isSuperAdmin: data.isSuperAdmin || false,
+        isRoot: data.isRoot || false,
       },
     });
   }
 
   findAll() {
     return this.prisma.user.findMany({
-      select: { id: true, name: true, email: true, isSuperAdmin: true, globalRole: true },
+      select: { id: true, name: true, email: true, isRoot: true },
     });
   }
 

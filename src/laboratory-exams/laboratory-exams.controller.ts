@@ -3,14 +3,14 @@ import { LaboratoryExamsService } from './laboratory-exams.service';
 import { CreateLaboratoryExamDto } from './dto/create-laboratory-exam.dto';
 import { UpdateLaboratoryExamDto } from './dto/update-laboratory-exam.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { OrgGuard } from '../auth/guards/org.guard';
-import { RoleGuard } from '../auth/guards/role.guard';
+import { OrgContextGuard } from '../auth/guards/org.guard';
+import { RolesGuard } from '../auth/guards/role.guard';
 import { Role } from '../auth/decorators/role.decorator';
 import { OwnershipGuard } from '../auth/guards/ownership.guard';
 import { CheckOwnership } from '../auth/decorators/check-ownership.decorator';
 
 @Controller('laboratory-exams')
-@UseGuards(JwtAuthGuard, OrgGuard, RoleGuard)
+@UseGuards(JwtAuthGuard, OrgContextGuard, RolesGuard)
 export class LaboratoryExamsController {
   constructor(private readonly examsService: LaboratoryExamsService) {}
 
@@ -18,13 +18,13 @@ export class LaboratoryExamsController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @Role('VET')
   create(@Req() req, @Body() createDto: CreateLaboratoryExamDto) {
-    return this.examsService.create(createDto, req.user.organizationId);
+    return this.examsService.create(createDto, req.user.activeOrganizationId);
   }
 
   @Get()
   @Role('VET') // Or STAFF
   findAll(@Req() req) {
-    return this.examsService.findAll(req.user.organizationId);
+    return this.examsService.findAll(req.user.activeOrganizationId);
   }
 
   @Get('pet/:petId')

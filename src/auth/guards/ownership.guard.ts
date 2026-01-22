@@ -1,11 +1,22 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ClientsService } from '../../clients/clients.service';
 
 export interface OwnershipCheckOptions {
-  paramName: string; // 'petId', 'examId', etc.
-  resourceType: 'pet' | 'exam' | 'dietaryPlan' | 'educationalMaterial' | 'appointment';
+  paramName: string;
+  resourceType:
+    | 'pet'
+    | 'exam'
+    | 'dietaryPlan'
+    | 'educationalMaterial'
+    | 'appointment';
 }
 
 @Injectable()
@@ -17,8 +28,11 @@ export class OwnershipGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const options = this.reflector.get<OwnershipCheckOptions>('ownershipCheck', context.getHandler());
-    if (!options) return true; // Guard não aplicado, permite acesso
+    const options = this.reflector.get<OwnershipCheckOptions>(
+      'ownershipCheck',
+      context.getHandler(),
+    );
+    if (!options) return true;
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
@@ -34,14 +48,21 @@ export class OwnershipGuard implements CanActivate {
       throw new BadRequestException(`Parâmetro ${paramName} não encontrado`);
     }
 
-    // VETs têm acesso a tudo (podem gerenciar recursos de qualquer pet/cliente)
-    if (user.role === 'VET') {
+    if (
+      user.memberRole === 'VET' ||
+      user.memberRole === 'ADMIN' ||
+      user.memberRole === 'OWNER'
+    ) {
       return true;
     }
 
-    // CLIENTs precisam validar propriedade
-    if (user.role === 'CLIENT') {
-      const isOwner = await this.validateClientOwnership(user.id, resourceId, resourceType, user.organizationId);
+    if (user.memberRole === 'CLIENT') {
+      const isOwner = await this.validateClientOwnership(
+        user.id,
+        resourceId,
+        resourceType,
+        user.activeOrganizationId,
+      );
       if (!isOwner) {
         throw new ForbiddenException('Acesso negado: recurso não pertence a você');
       }
@@ -59,22 +80,13 @@ export class OwnershipGuard implements CanActivate {
   ): Promise<boolean> {
     let client;
     if (organizationId) {
-        client = await this.clientsService.findByUserAndOrg(userId, organizationId);
+      client = await this.clientsService.findByUserAndOrg(userId, organizationId);
     } else {
-        // Fallback: Check if ANY of the user's client profiles own this?
-        // Risky but acceptable for legacy support?
-        // Better to require Org Context.
-        const clients = await this.clientsService.findByUserId(userId);
-        // We'll proceed if clients found, but we need to check ownership against ALL client Ids.
-        if (!clients || clients.length === 0) return false;
-        
-        // This makes logic complex below.
-        // Let's assume we pick the first one or fail?
-        // Or refactor logic to check array.
-        // For now, let's try to grab first.
-        client = clients[0]; 
+      const clients = await this.clientsService.findByUserId(userId);
+      if (!clients || clients.length === 0) return false;
+      client = clients[0];
     }
-    
+
     if (!client) return false;
 
     switch (resourceType) {
@@ -100,7 +112,6 @@ export class OwnershipGuard implements CanActivate {
       }
 
       case 'educationalMaterial': {
-        // Materiais educativos podem ser acessados por clientes cujos pets estão linkados
         const material = await this.prisma.educationalMaterial.findUnique({
           where: { id: resourceId },
           include: { pets: true },

@@ -12,7 +12,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RoleGuard } from '../auth/guards/role.guard';
+import { RolesGuard } from '../auth/guards/role.guard';
 import { Role } from '../auth/decorators/role.decorator';
 import { OrganizationService } from './organizations.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
@@ -30,38 +30,52 @@ export class OrganizationController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createOrgDto: CreateOrganizationDto, @Req() req: any) {
-    const ownerId = req.user.role === 'ROOT' && createOrgDto.ownerId 
-      ? createOrgDto.ownerId 
-      : (req.user.role === 'ROOT' ? undefined : req.user.id);
+    const ownerId = req.user.isRoot
+      ? createOrgDto.ownerId ?? null
+      : req.user.id;
       
     return await this.organizationService.create(
       createOrgDto,
-      ownerId,
+      ownerId || undefined,
     );
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Role('ROOT')
   async findAll() {
     return await this.organizationService.findAll();
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string) {
+  async findById(@Param('id') id: string, @Req() req: any) {
+    if (!req.user.isRoot && req.user.activeOrganizationId !== id) {
+      throw new Error('Acesso negado a esta organização');
+    }
     return await this.organizationService.findById(id);
   }
 
   @Put(':id')
-  @UseGuards(RoleGuard)
-  @Role('ROOT')
+  @UseGuards(RolesGuard)
+  // Removed strict @Role('ROOT') to allow custom logic check
   async update(
     @Param('id') id: string,
     @Body() updateOrgDto: UpdateOrganizationDto,
+    @Req() req: any
   ) {
+    // Logic: Root can update anyone. Owner can update their ACTIVE organization.
+    const isRoot = req.user.isRoot;
+    const isOwnerOfTarget = req.user.activeOrganizationId === id && req.user.memberRole === 'OWNER';
+
+    if (!isRoot && !isOwnerOfTarget) {
+         throw new Error('Acesso negado: Apenas Root ou o Dono da organização podem editá-la.');
+    }
+
     return await this.organizationService.update(id, updateOrgDto);
   }
 
   @Delete(':id')
-  @UseGuards(RoleGuard)
+  @UseGuards(RolesGuard)
   @Role('ROOT')
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id') id: string) {
@@ -71,7 +85,10 @@ export class OrganizationController {
   // ============= MEMBER ENDPOINTS =============
 
   @Get(':id/members')
-  async getMembers(@Param('id') id: string) {
+  async getMembers(@Param('id') id: string, @Req() req: any) {
+    if (!req.user.isRoot && req.user.activeOrganizationId !== id) {
+      throw new Error('Acesso negado a esta organização');
+    }
     return await this.organizationService.getMembers(id);
   }
 
@@ -82,11 +99,16 @@ export class OrganizationController {
     @Body() addMemberDto: AddMemberDto,
     @Req() req: any,
   ) {
-    // Verify user is owner or admin of organization
-    // Verify user is owner or admin of organization
-    const member = await this.organizationService.checkMembership(id, req.user.id, req.user.role);
+    if (!req.user.isRoot && req.user.activeOrganizationId !== id) {
+      throw new Error('Acesso negado a esta organização');
+    }
+    const member = await this.organizationService.checkMembership(
+      id,
+      req.user.id,
+      req.user.isRoot,
+    );
     
-    if (member.role !== 'owner' && member.role !== 'admin') {
+    if (member.role !== 'OWNER' && member.role !== 'ADMIN') {
       throw new Error('Only owners and admins can add members');
     }
 
@@ -100,11 +122,16 @@ export class OrganizationController {
     @Param('userId') userId: string,
     @Req() req: any,
   ) {
-    // Verify user is owner or admin of organization
-    // Verify user is owner or admin of organization
-    const member = await this.organizationService.checkMembership(id, req.user.id, req.user.role);
+    if (!req.user.isRoot && req.user.activeOrganizationId !== id) {
+      throw new Error('Acesso negado a esta organização');
+    }
+    const member = await this.organizationService.checkMembership(
+      id,
+      req.user.id,
+      req.user.isRoot,
+    );
     
-    if (member.role !== 'owner' && member.role !== 'admin') {
+    if (member.role !== 'OWNER' && member.role !== 'ADMIN') {
       throw new Error('Only owners and admins can remove members');
     }
 
@@ -118,11 +145,16 @@ export class OrganizationController {
     @Body() updateRoleDto: UpdateMemberRoleDto,
     @Req() req: any,
   ) {
-    // Verify user is owner or admin of organization
-    // Verify user is owner or admin of organization
-    const member = await this.organizationService.checkMembership(id, req.user.id, req.user.role);
+    if (!req.user.isRoot && req.user.activeOrganizationId !== id) {
+      throw new Error('Acesso negado a esta organização');
+    }
+    const member = await this.organizationService.checkMembership(
+      id,
+      req.user.id,
+      req.user.isRoot,
+    );
     
-    if (member.role !== 'owner' && member.role !== 'admin') {
+    if (member.role !== 'OWNER' && member.role !== 'ADMIN') {
       throw new Error('Only owners and admins can change member roles');
     }
 
@@ -136,14 +168,22 @@ export class OrganizationController {
   // ============= VET ENDPOINTS =============
 
   @Get(':id/vets')
-  async getVets(@Param('id') id: string) {
+  async getVets(@Param('id') id: string, @Req() req: any) {
+    if (!req.user.isRoot && req.user.activeOrganizationId !== id) {
+      throw new Error('Acesso negado a esta organização');
+    }
     return await this.organizationService.getVets(id);
   }
 
   // ============= USER ORGANIZATIONS =============
 
+  @Get('mine')
+  async getUserMemberships(@Req() req: any) {
+    return await this.organizationService.getUserMemberships(req.user.id);
+  }
+
   @Get('user/my-organizations')
   async getUserOrganizations(@Req() req: any) {
-    return await this.organizationService.getUserOrganizations(req.user.id);
+    return await this.organizationService.getUserMemberships(req.user.id);
   }
 }

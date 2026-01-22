@@ -24,7 +24,7 @@ export class ClientsService {
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      return this.prisma.client.create({
+      const client = await this.prisma.client.create({
         data: {
           name: clientData.name,
           email: clientData.email,
@@ -36,12 +36,25 @@ export class ClientsService {
               email: clientData.email,
               name: clientData.name,
               password: hashedPassword,
-              // role defaulted to USER via schema
+              // global access handled by organization membership
             },
           },
         },
         include: { user: true },
       });
+
+      if (client.userId) {
+        await this.prisma.organizationMember.create({
+          data: {
+            organizationId,
+            userId: client.userId,
+            role: 'CLIENT',
+            status: 'ACTIVE',
+          },
+        });
+      }
+
+      return client;
     }
 
     return this.prisma.client.create({
@@ -132,6 +145,14 @@ export class ClientsService {
       });
 
       clientData.userId = newUser.id;
+      await this.prisma.organizationMember.create({
+        data: {
+          organizationId,
+          userId: newUser.id,
+          role: 'CLIENT',
+          status: 'ACTIVE',
+        },
+      });
     }
 
     return this.prisma.client.update({

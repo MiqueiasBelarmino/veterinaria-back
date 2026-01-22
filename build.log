@@ -1,0 +1,67 @@
+prisma/seeders/clients.ts(1,24): error TS2305: Module '"@prisma/client"' has no exported member 'Role'.
+prisma/seeders/clients.ts(17,7): error TS2322: Type '{ userId: string; }' is not assignable to type 'ClientWhereUniqueInput'.
+  Type '{ userId: string; }' is not assignable to type '{ id: string; } & { id?: string | undefined; AND?: ClientWhereInput | ClientWhereInput[] | undefined; OR?: ClientWhereInput[] | undefined; ... 12 more ...; sales?: SaleListRelationFilter | undefined; }'.
+    Property 'id' is missing in type '{ userId: string; }' but required in type '{ id: string; }'.
+prisma/seeders/clients.ts(30,17): error TS2322: Type '{ name: string; species: string; breed: string; weight: number; sex: string; observations: string; }' is not assignable to type '(Without<PetCreateWithoutClientInput, PetUncheckedCreateWithoutClientInput> & PetUncheckedCreateWithoutClientInput) | (Without<...> & PetCreateWithoutClientInput) | PetCreateWithoutClientInput[] | PetUncheckedCreateWithoutClientInput[] | undefined'.
+  Type '{ name: string; species: string; breed: string; weight: number; sex: string; observations: string; }' is not assignable to type 'undefined'.
+src/admin/admin.service.ts(16,9): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'UserSelect<DefaultArgs>'.
+src/admin/admin.service.ts(31,9): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'UserSelect<DefaultArgs>'.
+src/admin/admin.service.ts(52,9): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type '(Without<UserCreateInput, UserUncheckedCreateInput> & UserUncheckedCreateInput) | (Without<...> & UserCreateInput)'.
+src/admin/admin.service.ts(58,9): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'UserSelect<DefaultArgs>'.
+src/admin/admin.service.ts(67,15): error TS2339: Property 'role' does not exist on type '{ id: string; email: string; password: string; name: string; isSuperAdmin: boolean; globalRole: GlobalRole; createdAt: Date; updatedAt: Date; }'.
+src/admin/admin.service.ts(73,15): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type '(Without<UserUpdateInput, UserUncheckedUpdateInput> & UserUncheckedUpdateInput) | (Without<...> & UserUpdateInput)'.
+src/admin/admin.service.ts(78,9): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'UserSelect<DefaultArgs>'.
+src/admin/admin.service.ts(87,14): error TS2339: Property 'role' does not exist on type '{ id: string; email: string; password: string; name: string; isSuperAdmin: boolean; globalRole: GlobalRole; createdAt: Date; updatedAt: Date; }'.
+src/admin/admin.service.ts(108,9): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'UserSelect<DefaultArgs>'.
+src/admin/admin.service.ts(116,24): error TS2339: Property 'clinic' does not exist on type 'PrismaService'.
+src/admin/admin.service.ts(133,29): error TS2345: Argument of type '{ where: { clinicId: string; }; } | undefined' is not assignable to parameter of type 'Subset<VetCountArgs<DefaultArgs>, VetCountArgs<DefaultArgs>> | undefined'.
+  Type '{ where: { clinicId: string; }; }' is not assignable to type 'Subset<VetCountArgs<DefaultArgs>, VetCountArgs<DefaultArgs>>'.
+    Types of property 'where' are incompatible.
+      Type '{ clinicId: string; }' has no properties in common with type 'VetWhereInput'.
+src/admin/admin.service.ts(169,7): error TS2322: Type '"role"[]' is not assignable to type 'UserScalarFieldEnum | UserScalarFieldEnum[]'.
+  Type '"role"[]' is not assignable to type 'UserScalarFieldEnum[]'.
+    Type '"role"' is not assignable to type 'UserScalarFieldEnum'.
+src/auth/guards/ownership.guard.ts(65,41): error TS2339: Property 'id' does not exist on type '({ organization: { id: string; name: string; createdAt: Date; updatedAt: Date; slug: string | null; type: OrganizationType; cnpj: string | null; isPhysicalLocation: boolean; address: string | null; phone: string | null; ownerId: string | null; }; } & { ...; })[]'.
+src/auth/guards/ownership.guard.ts(73,47): error TS2339: Property 'id' does not exist on type '({ organization: { id: string; name: string; createdAt: Date; updatedAt: Date; slug: string | null; type: OrganizationType; cnpj: string | null; isPhysicalLocation: boolean; address: string | null; phone: string | null; ownerId: string | null; }; } & { ...; })[]'.
+src/auth/guards/ownership.guard.ts(81,47): error TS2339: Property 'id' does not exist on type '({ organization: { id: string; name: string; createdAt: Date; updatedAt: Date; slug: string | null; type: OrganizationType; cnpj: string | null; isPhysicalLocation: boolean; address: string | null; phone: string | null; ownerId: string | null; }; } & { ...; })[]'.
+src/auth/guards/ownership.guard.ts(91,68): error TS2339: Property 'id' does not exist on type '({ organization: { id: string; name: string; createdAt: Date; updatedAt: Date; slug: string | null; type: OrganizationType; cnpj: string | null; isPhysicalLocation: boolean; address: string | null; phone: string | null; ownerId: string | null; }; } & { ...; })[]'.
+src/auth/guards/ownership.guard.ts(99,54): error TS2339: Property 'id' does not exist on type '({ organization: { id: string; name: string; createdAt: Date; updatedAt: Date; slug: string | null; type: OrganizationType; cnpj: string | null; isPhysicalLocation: boolean; address: string | null; phone: string | null; ownerId: string | null; }; } & { ...; })[]'.
+src/auth/guards/scopes.guard.ts(49,21): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(49,54): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(49,70): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(49,92): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(67,21): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(67,52): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(67,68): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(67,89): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(84,21): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(84,56): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(84,72): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(84,95): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(99,21): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(99,83): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(99,99): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(99,135): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(120,88): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(120,104): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(120,122): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/auth/guards/scopes.guard.ts(120,139): error TS2339: Property 'clinicId' does not exist on type '{ id: string; crmv: string | null; specialty: string | null; userId: string; }'.
+src/clinics/clinics.service.ts(11,24): error TS2339: Property 'clinic' does not exist on type 'PrismaService'.
+src/clinics/clinics.service.ts(21,24): error TS2339: Property 'clinic' does not exist on type 'PrismaService'.
+src/clinics/clinics.service.ts(25,38): error TS2339: Property 'clinic' does not exist on type 'PrismaService'.
+src/clinics/clinics.service.ts(31,24): error TS2339: Property 'clinic' does not exist on type 'PrismaService'.
+src/clinics/clinics.service.ts(35,24): error TS2339: Property 'clinic' does not exist on type 'PrismaService'.
+src/meal-plans.controller.spec.ts(2,37): error TS2307: Cannot find module './meal-plans.controller' or its corresponding type declarations.
+src/organizations/organizations.service.ts(64,11): error TS2820: Type '"owner"' is not assignable to type 'OrganizationMemberRole | undefined'. Did you mean '"OWNER"'?
+src/organizations/organizations.service.ts(93,9): error TS2353: Object literal may only specify known properties, and 'vets' does not exist in type 'OrganizationInclude<DefaultArgs>'.
+src/organizations/organizations.service.ts(129,17): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'UserSelect<DefaultArgs>'.
+src/organizations/organizations.service.ts(211,11): error TS2820: Type '"owner"' is not assignable to type 'OrganizationMemberRole | undefined'. Did you mean '"OWNER"'?
+src/organizations/organizations.service.ts(214,11): error TS2820: Type '"owner"' is not assignable to type 'OrganizationMemberRole | EnumOrganizationMemberRoleFieldUpdateOperationsInput | undefined'. Did you mean '"OWNER"'?
+src/organizations/organizations.service.ts(232,16): error TS2353: Object literal may only specify known properties, and 'organizationId' does not exist in type 'VetWhereInput'.
+src/organizations/organizations.service.ts(233,15): error TS2353: Object literal may only specify known properties, and 'organizationId' does not exist in type '(Without<VetUpdateManyMutationInput, VetUncheckedUpdateManyInput> & VetUncheckedUpdateManyInput) | (Without<...> & VetUpdateManyMutationInput)'.
+src/organizations/organizations.service.ts(255,13): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'UserSelect<DefaultArgs>'.
+src/organizations/organizations.service.ts(300,9): error TS2322: Type 'OrganizationMemberRoleEnum' is not assignable to type 'OrganizationMemberRole | undefined'.
+src/organizations/organizations.service.ts(331,9): error TS2367: This comparison appears to be unintentional because the types 'OrganizationMemberRole' and '"owner"' have no overlap.
+src/organizations/organizations.service.ts(368,9): error TS2367: This comparison appears to be unintentional because the types 'OrganizationMemberRole' and '"owner"' have no overlap.
+src/organizations/organizations.service.ts(382,9): error TS2322: Type 'OrganizationMemberRoleEnum' is not assignable to type 'OrganizationMemberRole | EnumOrganizationMemberRoleFieldUpdateOperationsInput | undefined'.
+src/organizations/organizations.service.ts(402,16): error TS2353: Object literal may only specify known properties, and 'organizationId' does not exist in type 'VetWhereInput'.

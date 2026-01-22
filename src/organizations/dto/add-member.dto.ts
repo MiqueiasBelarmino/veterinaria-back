@@ -1,10 +1,11 @@
 import { IsString, IsEnum } from 'class-validator';
 
 export enum OrganizationMemberRoleEnum {
-  OWNER = 'owner',
-  ADMIN = 'admin',
-  VET = 'vet',
-  STAFF = 'staff',
+  OWNER = 'OWNER',
+  ADMIN = 'ADMIN',
+  VET = 'VET',
+  STAFF = 'STAFF',
+  CLIENT = 'CLIENT',
 }
 
 export class AddMemberDto {

@@ -7,18 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Global System Role (only for Root/SuperAdmin usage)
-enum GlobalRole {
-  ROOT // Super admin of the system
-  USER // Standard user
-}
-
 // Organization-Level Role (RBAC)
 enum OrganizationMemberRole {
   OWNER
   ADMIN
   VET
   STAFF
+  CLIENT
 }
 
 enum OrganizationMemberStatus {
@@ -58,12 +53,11 @@ enum OrganizationType {
 }
 
 model User {
-  id           String     @id @default(uuid())
-  email        String     @unique
-  password     String
-  name         String
-  isSuperAdmin Boolean    @default(false) @map("is_super_admin") // Identifies ROOT users
-  globalRole   GlobalRole @default(USER) @map("global_role") // Redundant but explicit? Or just use isSuperAdmin. Keeping for clarity if needed.
+  id       String  @id @default(uuid())
+  email    String  @unique
+  password String
+  name     String
+  isRoot   Boolean @default(false) @map("is_root") // Identifies ROOT users
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -80,7 +74,8 @@ model User {
   // The prompt says "Model OrganizationMember é a tabela pivot". 
   // Let's keep a generic Vet profile if it's personal info, but link it to User. 
   // However, permissions are illegal without org.
-  vet Vet? // Global Vet Profile (e.g. CRMV, Specialty) linked to User
+  vet              Vet? // Global Vet Profile (e.g. CRMV, Specialty) linked to User
+  rootAssumeAudits RootAssumeAudit[]
 
   @@map("users")
 }
@@ -135,8 +130,9 @@ model Organization {
   dietaryPlans          DietaryPlan[]         @relation("OrganizationDietaryPlans")
   notificationTemplates Notification[]        @relation("OrganizationNotifications")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  rootAssumeAudits RootAssumeAudit[]
 
   @@map("organizations")
 }
@@ -542,6 +538,20 @@ model Notification {
   @@index([organizationId])
   @@index([userId])
   @@map("notifications")
+}
+
+model RootAssumeAudit {
+  id             String   @id @default(uuid())
+  rootUserId     String   @map("root_user_id")
+  organizationId String   @map("organization_id")
+  assumedAt      DateTime @default(now()) @map("assumed_at")
+
+  rootUser     User         @relation(fields: [rootUserId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([rootUserId])
+  @@index([organizationId])
+  @@map("root_assume_audits")
 }
 
 // REMOVED: model Clinic (Merged into Organization) 
