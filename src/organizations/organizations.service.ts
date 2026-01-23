@@ -11,9 +11,14 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 
+import { UsersService } from '../users/users.service';
+
 @Injectable()
 export class OrganizationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private usersService: UsersService,
+  ) {}
 
   // ============= ORGANIZATION CRUD =============
 
@@ -277,14 +282,41 @@ export class OrganizationService {
     addMemberDto: AddMemberDto,
   ) {
     const organization = await this.findById(organizationId);
+    
+    let targetUserId = addMemberDto.userId;
 
-    // Verify user exists
+    // Logic: Find or Create User if userId not provided
+    if (!targetUserId && addMemberDto.email) {
+        const existingUser = await this.usersService.findByEmail(addMemberDto.email);
+        
+        if (existingUser) {
+            targetUserId = existingUser.id;
+        } else {
+            // Validate required fields for creation
+            if (!addMemberDto.name || !addMemberDto.password) {
+                throw new BadRequestException('Name and Password are required to create a new user');
+            }
+            
+            const newUser = await this.usersService.create({
+                name: addMemberDto.name,
+                email: addMemberDto.email,
+                password: addMemberDto.password,
+            });
+            targetUserId = newUser.id;
+        }
+    }
+
+    if (!targetUserId) {
+        throw new BadRequestException('UserId or Email is required');
+    }
+
+    // Verify user exists (redundant if we just created/found, but safe for direct ID flow)
     const user = await this.prisma.user.findUnique({
-      where: { id: addMemberDto.userId },
+      where: { id: targetUserId },
     });
 
     if (!user) {
-      throw new NotFoundException(`User with id ${addMemberDto.userId} not found`);
+      throw new NotFoundException(`User with id ${targetUserId} not found`);
     }
 
     // Check if user is already a member
@@ -292,7 +324,7 @@ export class OrganizationService {
       where: {
         organizationId_userId: {
           organizationId,
-          userId: addMemberDto.userId,
+          userId: targetUserId,
         },
       },
     });
@@ -306,7 +338,7 @@ export class OrganizationService {
     return await this.prisma.organizationMember.create({
       data: {
         organizationId,
-        userId: addMemberDto.userId,
+        userId: targetUserId,
         role: addMemberDto.role as unknown as OrganizationMemberRole,
       },
       include: {
