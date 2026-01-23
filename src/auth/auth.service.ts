@@ -79,6 +79,62 @@ export class AuthService {
     );
   }
 
+  async assumeOrganization(userId: string, organizationId: string) {
+    const user = await this.usersService.findOne(userId);
+
+    if (!user.isRoot) {
+      throw new UnauthorizedException(
+        'Apenas usuários ROOT podem assumir identidades.',
+      );
+    }
+
+    const organization = await this.usersService['prisma'].organization.findUnique({
+      where: { id: organizationId },
+    });
+
+    if (!organization) {
+      throw new UnauthorizedException('Organização não encontrada.');
+    }
+
+    // Root assumes OWNER role virtually
+    return this.generateScopedToken(
+      user,
+      organization.id,
+      'OWNER',
+      organization.name,
+      true, // assumedByRoot
+    );
+  }
+
+  async revertToSystem(user: any) {
+    if (!user.isRoot) {
+      throw new UnauthorizedException('Apenas usuários ROOT.');
+    }
+
+    const dbUser = await this.usersService['prisma'].user.findUnique({
+      where: { id: user.id },
+      include: {
+        organizationMembers: {
+          include: { organization: true },
+        },
+      },
+    });
+
+    if (!dbUser) {
+      throw new UnauthorizedException('Usuário não encontrado.');
+    }
+
+    const memberships = (dbUser.organizationMembers || [])
+      .filter((member) => member.status === 'ACTIVE')
+      .map((member) => ({
+        organizationId: member.organizationId,
+        organizationName: member.organization.name,
+        role: member.role,
+      }));
+
+    return this.generateNeutralResponse(dbUser, memberships);
+  }
+
   async getMe(user: any) {
     if (!user?.activeOrganizationId) {
       return {

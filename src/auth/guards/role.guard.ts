@@ -22,8 +22,17 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Usuário não autenticado');
     }
 
-    if (user.isRoot || user.assumedByRoot) {
-      return true;
+    // Root Bypass Logic
+    if (user.isRoot) {
+      // 1. Global Admin (System Mode) - Neutral Token
+      if (user.tokenType === 'neutral') {
+        return true;
+      }
+
+      // 2. Root Impersonation (Support Mode) - Scoped Token + Assumed Flag
+      if (user.tokenType === 'scoped' && user.assumedByRoot) {
+        return true;
+      }
     }
 
     if (user.memberRole === 'OWNER') {

@@ -7,13 +7,15 @@ import {
 } from '@nestjs/common';
 import { OrganizationService } from '../../organizations/organizations.service';
 
+import { isRootAssumedForOrg, getOrganizationIdFromRequest } from '../../auth/utils/auth-helpers';
+
 @Injectable()
 export class OrganizationOwnerGuard implements CanActivate {
   constructor(private organizationService: OrganizationService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const organizationId = request.params.id || request.params.organizationId;
+    const organizationId = getOrganizationIdFromRequest(request);
     const userId = request.user?.id;
 
     if (!organizationId) {
@@ -22,6 +24,18 @@ export class OrganizationOwnerGuard implements CanActivate {
 
     if (!userId) {
       throw new ForbiddenException('User is not authenticated');
+    }
+
+    // Bypass for Assumed Root
+    if (isRootAssumedForOrg(request.user, organizationId)) {
+        // We might need to fetch the org to attach it to the request as controllers expect it
+        try {
+            const organization = await this.organizationService.findById(organizationId);
+            request.organization = organization;
+            return true;
+        } catch(e) {
+             throw new NotFoundException(`Organization with id ${organizationId} not found`);
+        }
     }
 
     try {

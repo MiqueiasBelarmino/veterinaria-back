@@ -31,6 +31,18 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('root/assume')
+  assumeOrganization(@Request() req, @Body() body: { organizationId: string }) {
+    return this.authService.assumeOrganization(req.user.id, body.organizationId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('root/revert')
+  revertToSystem(@Request() req) {
+    return this.authService.revertToSystem(req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('me')
   getMe(@Request() req) {
     return this.authService.getMe(req.user);

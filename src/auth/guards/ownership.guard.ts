@@ -48,6 +48,12 @@ export class OwnershipGuard implements CanActivate {
       throw new BadRequestException(`Parâmetro ${paramName} não encontrado`);
     }
 
+    // Root Impersonation Bypass
+    // Allows Root acting as Owner to access resources
+    if (user.isRoot && user.tokenType === 'scoped' && user.assumedByRoot) {
+      return true;
+    }
+
     if (
       user.memberRole === 'VET' ||
       user.memberRole === 'ADMIN' ||

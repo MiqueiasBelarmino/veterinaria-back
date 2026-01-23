@@ -14,13 +14,15 @@ export interface RequiredRole {
   allowAdmin?: boolean;
 }
 
+import { isRootAssumedForOrg, getOrganizationIdFromRequest } from '../../auth/utils/auth-helpers';
+
 @Injectable()
 export class OrganizationMemberGuard implements CanActivate {
   constructor(private organizationService: OrganizationService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const organizationId = request.params.id || request.params.organizationId;
+    const organizationId = getOrganizationIdFromRequest(request);
     const userId = request.user?.id;
     const requiredRole: RequiredRole = request.requiredOrgRole || {};
 
@@ -30,6 +32,18 @@ export class OrganizationMemberGuard implements CanActivate {
 
     if (!userId) {
       throw new ForbiddenException('User is not authenticated');
+    }
+
+    // Bypass for Assumed Root
+    if (isRootAssumedForOrg(request.user, organizationId)) {
+        request.organizationMember = {
+            userId: request.user.id,
+            organizationId: organizationId,
+            role: 'ROOT_DELEGATE', // Virtual role
+            // Add minimal mock properties if needed by controllers
+            organization: { id: organizationId }
+        };
+        return true;
     }
 
     try {
