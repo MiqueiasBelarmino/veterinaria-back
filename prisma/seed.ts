@@ -51,7 +51,7 @@ async function main() {
     update: {},
     create: {
       email: 'owner@alpha.com',
-      name: 'Dr. Owner',
+      name: 'Owner',
       password: passwordHash,
     }
   });
@@ -80,7 +80,7 @@ async function main() {
     update: {},
     create: {
       email: 'vet@alpha.com',
-      name: 'Dra. Vet',
+      name: 'Vet',
       password: passwordHash,
     }
   });
@@ -109,7 +109,7 @@ async function main() {
     update: {},
     create: {
       email: 'admin@alpha.com',
-      name: 'Sr. Admin',
+      name: 'Admin',
       password: passwordHash,
     }
   });

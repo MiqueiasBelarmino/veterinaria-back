@@ -31,5 +31,9 @@ export class CreateOrganizationDto {
 
   @IsOptional()
   @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
   ownerId?: string;
 }

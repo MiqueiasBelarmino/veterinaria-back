@@ -32,6 +32,7 @@ export class OrganizationService {
             : true,
         address: createOrgDto.address,
         phone: createOrgDto.phone,
+        email: createOrgDto.email,
         ownerId: ownerUserId || null,
       },
       include: {
@@ -177,6 +178,7 @@ export class OrganizationService {
             : organization.isPhysicalLocation,
         address: updateOrgDto.address || organization.address,
         phone: updateOrgDto.phone || organization.phone,
+        email: updateOrgDto.email || organization.email,
         ownerId: updateOrgDto.ownerId !== undefined ? updateOrgDto.ownerId : organization.ownerId,
       },
       include: {
@@ -377,6 +379,13 @@ export class OrganizationService {
       throw new BadRequestException(
         'Cannot change the role of the organization owner',
       );
+    }
+
+    // Prevent promoting to OWNER via this endpoint (Must change Organization Owner via Org Update)
+    if (updateRoleDto.role === (OrganizationMemberRole.OWNER as unknown as any)) {
+        throw new BadRequestException(
+            'Cannot promote a member to OWNER via role update. Use Organization settings to transfer ownership.',
+        );
     }
 
     return await this.prisma.organizationMember.update({

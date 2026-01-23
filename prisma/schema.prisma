@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -112,6 +113,7 @@ model Organization {
   isPhysicalLocation Boolean          @default(true) @map("is_physical_location")
   address            String?
   phone              String?
+  email              String?
 
   ownerId String? @map("owner_id")
   owner   User?   @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)

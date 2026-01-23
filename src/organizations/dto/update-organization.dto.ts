@@ -24,9 +24,11 @@ export class UpdateOrganizationDto {
 
   @IsOptional()
   @IsString()
+  phone?: string;
+
   @IsOptional()
   @IsString()
-  phone?: string;
+  email?: string;
 
   @IsOptional()
   @IsString()
