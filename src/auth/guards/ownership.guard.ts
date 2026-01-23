@@ -91,29 +91,31 @@ export class OwnershipGuard implements CanActivate {
 
     switch (resourceType) {
       case 'pet': {
-        const pet = await this.prisma.pet.findUnique({ where: { id: resourceId } });
+        const pet = await this.prisma.pet.findFirst({ 
+          where: { id: resourceId, organizationId: organizationId || undefined } 
+        });
         return pet?.clientId === client.id;
       }
 
       case 'exam': {
-        const exam = await this.prisma.laboratoryExam.findUnique({
-          where: { id: resourceId },
+        const exam = await this.prisma.laboratoryExam.findFirst({
+          where: { id: resourceId, organizationId: organizationId || undefined },
           include: { pet: true },
         });
         return exam?.pet?.clientId === client.id;
       }
 
       case 'dietaryPlan': {
-        const plan = await this.prisma.dietaryPlan.findUnique({
-          where: { id: resourceId },
+        const plan = await this.prisma.dietaryPlan.findFirst({
+          where: { id: resourceId, organizationId: organizationId || undefined },
           include: { pet: true },
         });
         return plan?.pet?.clientId === client.id;
       }
 
       case 'educationalMaterial': {
-        const material = await this.prisma.educationalMaterial.findUnique({
-          where: { id: resourceId },
+        const material = await this.prisma.educationalMaterial.findFirst({
+          where: { id: resourceId, organizationId: organizationId || undefined },
           include: { pets: true },
         });
         if (!material) return false;
@@ -121,8 +123,8 @@ export class OwnershipGuard implements CanActivate {
       }
 
       case 'appointment': {
-        const appointment = await this.prisma.appointment.findUnique({
-          where: { id: resourceId },
+        const appointment = await this.prisma.appointment.findFirst({
+          where: { id: resourceId, organizationId: organizationId || undefined },
           include: { pet: true },
         });
         return appointment?.pet?.clientId === client.id;

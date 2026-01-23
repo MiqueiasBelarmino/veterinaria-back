@@ -20,6 +20,9 @@ export class OrgContextGuard implements CanActivate {
     }
 
     if (!user.activeOrganizationId) {
+      // If no active org, we can't check membership.
+      // If the route strictly requires org context, this should fail.
+      // But some routes might be hybrid? Assuming strict for now as per Hotfix 3 requirments.
       throw new UnauthorizedException('Esta ação requer uma organização ativa');
     }
 
@@ -48,7 +51,10 @@ export class OrgContextGuard implements CanActivate {
       throw new ForbiddenException('Usuário não pertence à organização ativa');
     }
 
+    // HOTFIX: Override the trusted role with the DB source of truth
+    request.user.memberRole = member.role;
     request.organizationMember = member;
+
     return true;
   }
 }

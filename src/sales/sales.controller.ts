@@ -3,7 +3,7 @@ import { SalesService } from './sales.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrgContextGuard } from '../auth/guards/org.guard';
 import { RolesGuard } from '../auth/guards/role.guard';
-import { Role } from '../auth/decorators/role.decorator';
+import { Role, Roles } from '../auth/decorators/role.decorator';
 
 @Controller('sales')
 @UseGuards(JwtAuthGuard, OrgContextGuard, RolesGuard)
@@ -11,7 +11,7 @@ export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
   @Post()
-  @Role('VET') // Or STAFF/ADMIN
+  @Roles('VET', 'ADMIN', 'OWNER', 'STAFF')
   create(@Req() req, @Body() body: any) {
     return this.salesService.create(body, req.user.activeOrganizationId);
   }

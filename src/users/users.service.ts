@@ -53,4 +53,24 @@ export class UsersService {
       },
     });
   }
+  async updateIsRoot(id: string, isRoot: boolean) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { isRoot },
+    });
+  }
+
+  async updatePassword(id: string, password: string) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    return this.prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword },
+    });
+  }
+
+  async remove(id: string) {
+    return this.prisma.user.delete({
+      where: { id },
+    });
+  }
 }

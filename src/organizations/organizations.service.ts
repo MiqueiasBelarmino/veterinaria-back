@@ -505,6 +505,13 @@ export class OrganizationService {
             isPhysicalLocation: true,
             address: true,
             phone: true,
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
           },
         },
       },

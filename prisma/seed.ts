@@ -103,6 +103,96 @@ async function main() {
   });
   console.log('✅ Vet Linked');
 
+  // 8. Create Admin User
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@alpha.com' },
+    update: {},
+    create: {
+      email: 'admin@alpha.com',
+      name: 'Sr. Admin',
+      password: passwordHash,
+    }
+  });
+
+  // 9. Link Admin to Clinic A
+  await prisma.organizationMember.upsert({
+    where: {
+        organizationId_userId: {
+            organizationId: clinicA.id,
+            userId: adminUser.id
+        }
+    },
+    update: {},
+    create: {
+      userId: adminUser.id,
+      organizationId: clinicA.id,
+      role: OrganizationMemberRole.ADMIN,
+      status: 'ACTIVE'
+    }
+  });
+  console.log('✅ Admin Linked');
+
+  // 10. Create Staff User
+  const staffUser = await prisma.user.upsert({
+    where: { email: 'staff@alpha.com' },
+    update: {},
+    create: {
+      email: 'staff@alpha.com',
+      name: 'Assistente Staff',
+      password: passwordHash,
+    }
+  });
+
+  // 11. Link Staff to Clinic A
+  await prisma.organizationMember.upsert({
+    where: {
+        organizationId_userId: {
+            organizationId: clinicA.id,
+            userId: staffUser.id
+        }
+    },
+    update: {},
+    create: {
+      userId: staffUser.id,
+      organizationId: clinicA.id,
+      role: OrganizationMemberRole.STAFF,
+      status: 'ACTIVE'
+    }
+  });
+  console.log('✅ Staff Linked');
+
+  // 12. Create Client User
+  const clientUser = await prisma.user.upsert({
+    where: { email: 'client@alpha.com' },
+    update: {},
+    create: {
+      email: 'client@alpha.com',
+      name: 'Cliente Exemplo',
+      password: passwordHash,
+    }
+  });
+
+  // 13. Link Client to Clinic A (as Member? Or just Client entity?)
+  // Schema says OrganizationMemberRole includes CLIENT. 
+  // If they login to the portal, they need to be an OrganizationMember with role CLIENT.
+  await prisma.organizationMember.upsert({
+    where: {
+        organizationId_userId: {
+            organizationId: clinicA.id,
+            userId: clientUser.id
+        }
+    },
+    update: {},
+    create: {
+      userId: clientUser.id,
+      organizationId: clinicA.id,
+      role: OrganizationMemberRole.CLIENT,
+      status: 'ACTIVE'
+    }
+  });
+  console.log('✅ Client Linked');
+
+
 }
 
 main()
