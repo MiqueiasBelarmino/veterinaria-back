@@ -18,6 +18,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ClinicsModule } from './clinics/clinics.module';
 import { AdminModule } from './admin/admin.module';
+import { AppointmentRequestsModule } from './appointment-requests/appointment-requests.module';
+
 
 @Module({
   imports: [
@@ -38,6 +40,7 @@ import { AdminModule } from './admin/admin.module';
     DietaryPlansModule,
     EducationalMaterialsModule,
     NotificationsModule,
+    AppointmentRequestsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

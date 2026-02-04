@@ -6,9 +6,9 @@ export class RoleGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRole = this.reflector.get<string>('role', context.getHandler());
+    const requiredRoles = this.reflector.get<string[]>('role', context.getHandler());
 
-    if (!requiredRole) {
+    if (!requiredRoles) {
       return true; // No role required
     }
 
@@ -24,9 +24,9 @@ export class RoleGuard implements CanActivate {
       return true;
     }
 
-    if (user.role !== requiredRole) {
+    if (!requiredRoles.includes(user.role)) {
       throw new ForbiddenException(
-        `Acesso negado. Função necessária: ${requiredRole}, sua função: ${user.role}`,
+        `Acesso negado. Funções necessárias: ${requiredRoles.join(', ')}, sua função: ${user.role}`,
       );
     }
 

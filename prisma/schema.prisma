@@ -129,6 +129,7 @@ model Appointment {
   clinicalRecords ClinicalRecord[]
   educationalMaterials EducationalMaterial[] @relation("AppointmentMaterials")
   notifications Notification[]
+  appointmentRequest AppointmentRequest?
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -398,4 +399,30 @@ model Clinic {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("clinics")
+}
+
+enum RequestStatus {
+  PENDING
+  PROCESSED
+  REJECTED
+}
+
+model AppointmentRequest {
+  id              String        @id @default(uuid())
+  ownerName       String        @map("owner_name")
+  ownerPhone      String        @map("owner_phone")
+  ownerEmail      String?       @map("owner_email")
+  petName         String        @map("pet_name")
+  petSpecies      String        @map("pet_species")
+  preferredDate   DateTime      @map("preferred_date")
+  notes           String?
+  status          RequestStatus @default(PENDING)
+  
+  appointmentId   String?       @unique @map("appointment_id")
+  appointment     Appointment?  @relation(fields: [appointmentId], references: [id])
+
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@map("appointment_requests")
 }
