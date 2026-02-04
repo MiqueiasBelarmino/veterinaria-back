@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { AppointmentStatus, Prisma } from '@prisma/client';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 
@@ -111,5 +111,26 @@ export class AppointmentsService {
 
   remove(id: string) {
     return this.prisma.appointment.delete({ where: { id } });
+  }
+
+  finish(id: string) {
+    return this.prisma.appointment.update({
+      where: { id },
+      data: { status: AppointmentStatus.COMPLETED },
+    });
+  }
+
+  cancel(id: string) {
+    return this.prisma.appointment.update({
+      where: { id },
+      data: { status: AppointmentStatus.CANCELLED },
+    });
+  }
+
+  checkin(id: string) {
+    return this.prisma.appointment.update({
+      where: { id },
+      data: { status: AppointmentStatus.CHECKED_IN },
+    });
   }
 }

@@ -52,4 +52,22 @@ export class AppointmentsController {
   remove(@Param('id') id: string) {
     return this.appointmentsService.remove(id);
   }
+
+  @Patch(':id/finish')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  finish(@Param('id') id: string) {
+    return this.appointmentsService.finish(id);
+  }
+
+  @Patch(':id/cancel')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  cancel(@Param('id') id: string) {
+    return this.appointmentsService.cancel(id);
+  }
+
+  @Patch(':id/checkin')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  checkin(@Param('id') id: string) {
+    return this.appointmentsService.checkin(id);
+  }
 }
