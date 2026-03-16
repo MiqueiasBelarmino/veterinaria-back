@@ -23,6 +23,7 @@ enum AppointmentType {
 }
 
 enum AppointmentStatus {
+  PENDING
   SCHEDULED
   COMPLETED
   CANCELLED

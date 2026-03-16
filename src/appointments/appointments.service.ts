@@ -8,8 +8,23 @@ import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 export class AppointmentsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createAppointmentDto: CreateAppointmentDto) {
+  async create(createAppointmentDto: CreateAppointmentDto, user?: any) {
     const { petId, planId, vetId, ...data } = createAppointmentDto;
+
+    // Security: If user is a CLIENT, check if the pet belongs to them
+    if (user && user.role === 'CLIENT') {
+      const client = await this.prisma.client.findUnique({
+        where: { userId: user.id },
+      });
+      if (!client) throw new Error('Client profile not found');
+
+      const pet = await this.prisma.pet.findUnique({
+        where: { id: petId },
+      });
+      if (!pet || pet.clientId !== client.id) {
+        throw new Error('This pet does not belong to you');
+      }
+    }
 
     // Logic for Plan Return management
     if (planId) {
@@ -25,7 +40,6 @@ export class AppointmentsService {
 
       if (createAppointmentDto.type === 'RETURN') {
         if (plan.returnsUsed >= plan.definition.returnsIncluded) {
-          // Allow override check if needed, strictly enforcing for now based on requirements
           throw new Error('Limit of returns for this plan reached');
         }
 
@@ -41,6 +55,7 @@ export class AppointmentsService {
       ...data,
       pet: { connect: { id: petId } },
       vet: vetId ? { connect: { id: vetId } } : undefined,
+      status: user?.role === 'CLIENT' ? AppointmentStatus.PENDING : AppointmentStatus.SCHEDULED,
     };
 
     if (planId) {
@@ -74,19 +89,27 @@ export class AppointmentsService {
         });
       }
     } catch (err) {
-      // Don't fail appointment creation for notification errors, log if necessary
-
       console.error('Failed to create notification:', err);
     }
 
     return created;
   }
 
-  findAll(vetId?: string) {
-    const where: Prisma.AppointmentWhereInput = {};
-    if (vetId) where.vetId = vetId;
+  findAll() {
     return this.prisma.appointment.findMany({
-      where,
+      include: { pet: true, vet: true },
+    });
+  }
+
+  findAllByClient(userId: string) {
+    return this.prisma.appointment.findMany({
+      where: {
+        pet: {
+          client: {
+            userId: userId,
+          },
+        },
+      },
       include: { pet: true, vet: true },
     });
   }

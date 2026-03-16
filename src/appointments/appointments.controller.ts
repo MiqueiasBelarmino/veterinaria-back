@@ -9,6 +9,7 @@ import {
   UseGuards,
   UsePipes,
   ValidationPipe,
+  Request,
 } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -24,12 +25,16 @@ export class AppointmentsController {
 
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
-  create(@Body() createAppointmentDto: CreateAppointmentDto) {
-    return this.appointmentsService.create(createAppointmentDto);
+  create(@Body() createAppointmentDto: CreateAppointmentDto, @Request() req: any) {
+    return this.appointmentsService.create(createAppointmentDto, req.user);
   }
 
   @Get()
-  findAll() {
+  findAll(@Request() req: any) {
+    const user = req.user;
+    if (user.role === 'CLIENT') {
+      return this.appointmentsService.findAllByClient(user.id);
+    }
     return this.appointmentsService.findAll();
   }
 
