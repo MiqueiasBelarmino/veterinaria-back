@@ -34,8 +34,4 @@ export class CreateEducationalMaterialDto {
   @IsOptional()
   appointmentIds?: string[];
 
-  @IsArray()
-  @IsUUID('all', { each: true })
-  @IsOptional()
-  planDefinitionIds?: string[];
 }

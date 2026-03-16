@@ -8,7 +8,7 @@ export class DietaryPlansService {
   constructor(private prisma: PrismaService) {}
 
   async create(createDto: CreateDietaryPlanDto) {
-    const { petId, planId, meals, ...data } = createDto;
+    const { petId, meals, ...data } = createDto;
 
     // Verify pet
     const pet = await this.prisma.pet.findUnique({ where: { id: petId } });
@@ -36,7 +36,6 @@ export class DietaryPlansService {
         version: nextVersion,
         isActive: true,
         pet: { connect: { id: petId } },
-        ...(planId && { plan: { connect: { id: planId } } }),
         meals: {
           create: meals.map((meal) => ({
             name: meal.name,

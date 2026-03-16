@@ -63,9 +63,6 @@ export class CreateDietaryPlanDto {
   @IsNotEmpty()
   petId: string;
 
-  @IsString()
-  @IsOptional()
-  planId?: string;
 
   @IsString()
   @IsOptional()

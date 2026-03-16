@@ -101,7 +101,6 @@ model Pet {
   client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   appointments Appointment[]
   prescriptions Prescription[]
-  plans       Plan[]
   clinicalRecords ClinicalRecord[]
   laboratoryExams LaboratoryExam[]
   dietaryPlans    DietaryPlan[]
@@ -121,13 +120,11 @@ model Appointment {
   type        AppointmentType
   status      AppointmentStatus @default(SCHEDULED)
   notes       String?
-  planId      String?           @map("plan_id")
   meetingProvider String?           @map("meeting_provider")
   meetingUrl      String?           @map("meeting_url")
   
   pet         Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
   vet         Vet?     @relation(fields: [vetId], references: [id])
-  plan        Plan?    @relation(fields: [planId], references: [id])
   prescription Prescription?
   clinicalRecords ClinicalRecord[]
   educationalMaterials EducationalMaterial[] @relation("AppointmentMaterials")
@@ -177,7 +174,6 @@ model ClinicalRecord {
   id            String   @id @default(uuid())
   petId         String   @map("pet_id")
   appointmentId String?  @map("appointment_id")
-  planId        String?  @map("plan_id")
   date          DateTime @default(now())
   diagnosis     String?
   treatment     String?
@@ -187,7 +183,6 @@ model ClinicalRecord {
   
   pet           Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-  plan          Plan?        @relation(fields: [planId], references: [id])
 
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -236,66 +231,16 @@ model SaleItem {
   @@map("sale_items")
 }
 
-model PlanDefinition {
-  id               String   @id @default(uuid())
-  name             String
-  type             String
-  durationInMonths Int      @map("duration_in_months")
-  returnsIncluded  Int      @map("returns_included")
-  examReturnCounts Boolean  @default(false) @map("exam_return_counts")
-  isActive         Boolean  @default(true) @map("is_active")
-  
-  plans            Plan[]
-  educationalMaterials EducationalMaterial[] @relation("PlanDefinitionMaterials")
-
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  @@map("plan_definitions")
-}
-
-enum PlanStatus {
-  ACTIVE
-  PAUSED
-  COMPLETED
-  CANCELLED
-}
-
-model Plan {
-  id                     String   @id @default(uuid())
-  petId                  String   @map("pet_id")
-  planDefinitionId       String   @map("plan_definition_id")
-  startDate              DateTime @map("start_date")
-  endDate                DateTime @map("end_date")
-  status                 PlanStatus @default(ACTIVE)
-  returnsUsed            Int      @default(0) @map("returns_used")
-  overrideExamReturnCounts Boolean? @map("override_exam_return_counts")
-
-  pet                    Pet            @relation(fields: [petId], references: [id], onDelete: Cascade)
-  definition             PlanDefinition @relation(fields: [planDefinitionId], references: [id])
-  
-  appointments           Appointment[]
-  clinicalRecords        ClinicalRecord[]
-  laboratoryExams        LaboratoryExam[]
-  dietaryPlans           DietaryPlan[]
-
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
-
-  @@map("plans")
-}
 
 model LaboratoryExam {
   id          String            @id @default(uuid())
   petId       String            @map("pet_id")
-  planId      String?           @map("plan_id")
   protocol    NutritionProtocol
   date        DateTime          @default(now())
   results     String
   attachments String[]          @default([])
   
   pet         Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
-  plan        Plan?             @relation(fields: [planId], references: [id])
 
   createdAt   DateTime          @default(now()) @map("created_at")
   updatedAt   DateTime          @updatedAt @map("updated_at")
@@ -306,14 +251,12 @@ model LaboratoryExam {
 model DietaryPlan {
   id              String   @id @default(uuid())
   petId           String   @map("pet_id")
-  planId          String?  @map("plan_id")
   version         Int      @default(1)
   isActive        Boolean  @default(true) @map("is_active")
   observations    String?
   startDate       DateTime @default(now()) @map("start_date")
   
   pet             Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
-  plan            Plan?    @relation(fields: [planId], references: [id])
   meals           Meal[]
 
   createdAt       DateTime @default(now()) @map("created_at")
@@ -368,7 +311,6 @@ model EducationalMaterial {
   // Many-to-many relations
   pets            Pet[]            @relation("PetMaterials")
   appointments    Appointment[]    @relation("AppointmentMaterials")
-  planDefinitions PlanDefinition[] @relation("PlanDefinitionMaterials")
 
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")

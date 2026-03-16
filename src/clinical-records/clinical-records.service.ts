@@ -8,7 +8,7 @@ export class ClinicalRecordsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createClinicalRecordDto: CreateClinicalRecordDto) {
-    const { petId, appointmentId, planId, ...data } = createClinicalRecordDto;
+    const { petId, appointmentId, ...data } = createClinicalRecordDto;
 
     const pet = await this.prisma.pet.findUnique({ where: { id: petId } });
     if (!pet) throw new NotFoundException('Pet not found');
@@ -27,13 +27,10 @@ export class ClinicalRecordsService {
       recordData.appointment = { connect: { id: appointmentId } };
     }
 
-    if (planId) {
-      recordData.plan = { connect: { id: planId } };
-    }
 
     return this.prisma.clinicalRecord.create({
       data: recordData,
-      include: { appointment: true, plan: { include: { definition: true } } },
+      include: { appointment: true },
     });
   }
 
@@ -42,7 +39,6 @@ export class ClinicalRecordsService {
       where: { petId },
       include: {
         appointment: true,
-        plan: { include: { definition: true } },
       },
       orderBy: { date: 'desc' },
     });

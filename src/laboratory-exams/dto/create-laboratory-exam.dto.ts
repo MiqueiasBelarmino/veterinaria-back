@@ -14,9 +14,6 @@ export class CreateLaboratoryExamDto {
   @IsNotEmpty()
   petId: string;
 
-  @IsString()
-  @IsOptional()
-  planId?: string;
 
   @IsEnum(NutritionProtocol, { message: 'Protocolo nutricional inválido' })
   protocol: NutritionProtocol;

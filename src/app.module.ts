@@ -9,7 +9,6 @@ import { AppointmentsModule } from './appointments/appointments.module';
 import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { ProductsModule } from './products/products.module';
 import { SalesModule } from './sales/sales.module';
-import { PlansModule } from './plans/plans.module';
 import { ClinicalRecordsModule } from './clinical-records/clinical-records.module';
 import { LaboratoryExamsModule } from './laboratory-exams/laboratory-exams.module';
 import { DietaryPlansModule } from './dietary-plans/dietary-plans.module';
@@ -33,7 +32,6 @@ import { AppointmentRequestsModule } from './appointment-requests/appointment-re
     PrescriptionsModule,
     ProductsModule,
     SalesModule,
-    PlansModule,
     ClinicalRecordsModule,
     LaboratoryExamsModule,
     DietaryPlansModule,

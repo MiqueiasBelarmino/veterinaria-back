@@ -32,9 +32,6 @@ export class CreateAppointmentDto {
   @IsOptional()
   notes?: string;
 
-  @IsString()
-  @IsOptional()
-  planId?: string;
 
   @IsString()
   @IsOptional()

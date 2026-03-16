@@ -41,7 +41,4 @@ export class CreateClinicalRecordDto {
   @IsOptional()
   appointmentId?: string;
 
-  @IsString()
-  @IsOptional()
-  planId?: string;
 }

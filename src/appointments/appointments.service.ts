@@ -9,7 +9,7 @@ export class AppointmentsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createAppointmentDto: CreateAppointmentDto, user?: any) {
-    const { petId, planId, vetId, ...data } = createAppointmentDto;
+    const { petId, vetId, ...data } = createAppointmentDto;
 
     // Security: If user is a CLIENT, check if the pet belongs to them
     if (user && user.role === 'CLIENT') {
@@ -26,30 +26,6 @@ export class AppointmentsService {
       }
     }
 
-    // Logic for Plan Return management
-    if (planId) {
-      const plan = await this.prisma.plan.findUnique({
-        where: { id: planId },
-        include: { definition: true },
-      });
-
-      if (!plan) throw new Error('Plan not found');
-      if (plan.status !== 'ACTIVE') throw new Error('Plan is not active');
-      if (plan.petId !== petId)
-        throw new Error('Plan does not belong to this pet');
-
-      if (createAppointmentDto.type === 'RETURN') {
-        if (plan.returnsUsed >= plan.definition.returnsIncluded) {
-          throw new Error('Limit of returns for this plan reached');
-        }
-
-        // Increment returns used
-        await this.prisma.plan.update({
-          where: { id: planId },
-          data: { returnsUsed: { increment: 1 } },
-        });
-      }
-    }
 
     const appointmentData: Prisma.AppointmentCreateInput = {
       ...data,
@@ -58,9 +34,6 @@ export class AppointmentsService {
       status: user?.role === 'CLIENT' ? AppointmentStatus.PENDING : AppointmentStatus.SCHEDULED,
     };
 
-    if (planId) {
-      appointmentData.plan = { connect: { id: planId } };
-    }
     // Create appointment and include pet -> client to allow notification creation
     const created = await this.prisma.appointment.create({
       data: appointmentData,

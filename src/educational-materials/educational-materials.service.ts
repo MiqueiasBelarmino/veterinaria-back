@@ -8,7 +8,7 @@ export class EducationalMaterialsService {
   constructor(private prisma: PrismaService) {}
 
   create(createDto: CreateEducationalMaterialDto) {
-    const { petIds, appointmentIds, planDefinitionIds, ...data } = createDto;
+    const { petIds, appointmentIds, ...data } = createDto;
 
     return this.prisma.educationalMaterial.create({
       data: {
@@ -19,9 +19,6 @@ export class EducationalMaterialsService {
         appointments: {
           connect: appointmentIds?.map((id) => ({ id })),
         },
-        planDefinitions: {
-          connect: planDefinitionIds?.map((id) => ({ id })),
-        },
       },
     });
   }
@@ -31,18 +28,16 @@ export class EducationalMaterialsService {
       include: {
         pets: true,
         appointments: true,
-        planDefinitions: true,
       },
     });
   }
 
   async findOne(id: string) {
     const material = await this.prisma.educationalMaterial.findUnique({
-      where: { id },
+      where: { id: id },
       include: {
         pets: true,
         appointments: true,
-        planDefinitions: true,
       },
     });
 
@@ -56,7 +51,7 @@ export class EducationalMaterialsService {
   }
 
   async update(id: string, updateDto: UpdateEducationalMaterialDto) {
-    const { petIds, appointmentIds, planDefinitionIds, ...data } = updateDto;
+    const { petIds, appointmentIds, ...data } = updateDto;
 
     return this.prisma.educationalMaterial.update({
       where: { id },
@@ -65,9 +60,6 @@ export class EducationalMaterialsService {
         pets: petIds ? { set: petIds.map((id) => ({ id })) } : undefined,
         appointments: appointmentIds
           ? { set: appointmentIds.map((id) => ({ id })) }
-          : undefined,
-        planDefinitions: planDefinitionIds
-          ? { set: planDefinitionIds.map((id) => ({ id })) }
           : undefined,
       },
     });
@@ -92,10 +84,6 @@ export class EducationalMaterialsService {
       where: { id: petId },
       include: {
         appointments: true,
-        plans: {
-          where: { status: 'ACTIVE' },
-          include: { definition: true },
-        },
       },
     });
 
@@ -104,14 +92,12 @@ export class EducationalMaterialsService {
     }
 
     const appointmentIds = pet.appointments.map((a) => a.id);
-    const planDefIds = pet.plans.map((p) => p.planDefinitionId);
 
     return this.prisma.educationalMaterial.findMany({
       where: {
         OR: [
           { pets: { some: { id: petId } } },
           { appointments: { some: { id: { in: appointmentIds } } } },
-          { planDefinitions: { some: { id: { in: planDefIds } } } },
         ],
       },
     });

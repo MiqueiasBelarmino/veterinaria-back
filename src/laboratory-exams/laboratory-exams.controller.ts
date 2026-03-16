@@ -39,10 +39,6 @@ export class LaboratoryExamsController {
     return this.examsService.findByPet(petId);
   }
 
-  @Get('plan/:planId')
-  findByPlan(@Param('planId') planId: string) {
-    return this.examsService.findByPlan(planId);
-  }
 
   @Get(':id')
   @CheckOwnership({ paramName: 'id', resourceType: 'exam' })

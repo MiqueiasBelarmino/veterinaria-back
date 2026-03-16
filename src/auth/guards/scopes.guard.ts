@@ -69,35 +69,6 @@ export class ScopesGuard implements CanActivate {
           }
         }
 
-        if (resource === 'plans') {
-          // plan -> has pet -> client.userId
-          const plan = await this.prisma.plan.findUnique({
-            where: { id },
-            include: { pet: { include: { client: true } } },
-          });
-          if (!plan) continue;
-          if (user.role === 'CLIENT' && plan.pet?.client?.userId === user.id)
-            return true;
-          if (user.role === 'VET') {
-            const vet = await this.prisma.vet.findUnique({
-              where: { userId: user.id },
-            });
-            if (!vet) continue;
-            // vets of same clinic can manage
-            const planVet = await this.prisma.vet
-              .findUnique({ where: { id: plan?.pet?.id } })
-              .catch(() => null);
-            if (
-              vet.clinicId &&
-              planVet &&
-              planVet.clinicId &&
-              vet.clinicId === planVet.clinicId
-            )
-              return true;
-            // or vets can be allowed to manage plans generally
-            if (vet) return true;
-          }
-        }
 
         if (resource === 'prescriptions') {
           const presc = await this.prisma.prescription.findUnique({

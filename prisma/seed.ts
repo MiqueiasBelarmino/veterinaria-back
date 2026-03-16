@@ -84,37 +84,6 @@ async function main() {
     skipDuplicates: true,
   });
 
-  console.log('Seeding PlanDefinitions...');
-  const planDefinitions = [
-    {
-      name: 'Consulta Avulsa',
-      type: 'SINGLE',
-      durationInMonths: 1,
-      returnsIncluded: 0,
-      examReturnCounts: false,
-    },
-    {
-      name: 'Plano 2 Meses',
-      type: 'MONTHLY_2',
-      durationInMonths: 2,
-      returnsIncluded: 1,
-      examReturnCounts: false,
-    },
-    {
-      name: 'Plano 3 Meses',
-      type: 'MONTHLY_3',
-      durationInMonths: 3,
-      returnsIncluded: 2,
-      examReturnCounts: false,
-    },
-  ];
-
-  for (const plan of planDefinitions) {
-    const exists = await prisma.planDefinition.findFirst({ where: { name: plan.name } });
-    if (!exists) {
-      await prisma.planDefinition.create({ data: plan });
-    }
-  }
 
   console.log('Seed completed successfully!');
 }
