@@ -39,4 +39,12 @@ export class CreateAppointmentDto {
   @IsString()
   @IsOptional()
   vetId?: string;
+
+  @IsString()
+  @IsOptional()
+  meetingProvider?: string;
+
+  @IsString()
+  @IsOptional()
+  meetingUrl?: string;
 }

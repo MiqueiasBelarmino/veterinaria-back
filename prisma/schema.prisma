@@ -122,6 +122,8 @@ model Appointment {
   status      AppointmentStatus @default(SCHEDULED)
   notes       String?
   planId      String?           @map("plan_id")
+  meetingProvider String?           @map("meeting_provider")
+  meetingUrl      String?           @map("meeting_url")
   
   pet         Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
   vet         Vet?     @relation(fields: [vetId], references: [id])
