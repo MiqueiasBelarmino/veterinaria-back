@@ -47,7 +47,9 @@ export class EducationalMaterialsService {
     });
 
     if (!material) {
-      throw new NotFoundException(`Educational material with ID ${id} not found`);
+      throw new NotFoundException(
+        `Educational material with ID ${id} not found`,
+      );
     }
 
     return material;
@@ -61,8 +63,12 @@ export class EducationalMaterialsService {
       data: {
         ...data,
         pets: petIds ? { set: petIds.map((id) => ({ id })) } : undefined,
-        appointments: appointmentIds ? { set: appointmentIds.map((id) => ({ id })) } : undefined,
-        planDefinitions: planDefinitionIds ? { set: planDefinitionIds.map((id) => ({ id })) } : undefined,
+        appointments: appointmentIds
+          ? { set: appointmentIds.map((id) => ({ id })) }
+          : undefined,
+        planDefinitions: planDefinitionIds
+          ? { set: planDefinitionIds.map((id) => ({ id })) }
+          : undefined,
       },
     });
   }

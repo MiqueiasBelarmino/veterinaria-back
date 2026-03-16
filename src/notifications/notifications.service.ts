@@ -11,7 +11,9 @@ export class NotificationsService {
     return this.prisma.notification.create({
       data: {
         user: { connect: { id: dto.userId } },
-        appointment: dto.appointmentId ? { connect: { id: dto.appointmentId } } : undefined,
+        appointment: dto.appointmentId
+          ? { connect: { id: dto.appointmentId } }
+          : undefined,
         type: dto.type,
         data: (dto.data ?? {}) as Prisma.InputJsonValue,
       },
@@ -28,7 +30,8 @@ export class NotificationsService {
   async markRead(id: string, userId: string) {
     const note = await this.prisma.notification.findUnique({ where: { id } });
     if (!note) throw new NotFoundException('Notification not found');
-    if (note.userId !== userId) throw new NotFoundException('Notification not found for user');
+    if (note.userId !== userId)
+      throw new NotFoundException('Notification not found for user');
 
     return this.prisma.notification.update({
       where: { id },
@@ -36,4 +39,3 @@ export class NotificationsService {
     });
   }
 }
-

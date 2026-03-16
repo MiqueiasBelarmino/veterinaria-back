@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { EducationalMaterialsService } from './educational-materials.service';
 import { CreateEducationalMaterialDto } from './dto/create-educational-material.dto';
 import { UpdateEducationalMaterialDto } from './dto/update-educational-material.dto';
@@ -11,7 +20,9 @@ import { CheckOwnership } from '../auth/decorators/check-ownership.decorator';
 @Controller('educational-materials')
 @UseGuards(JwtAuthGuard, ScopesGuard, OwnershipGuard)
 export class EducationalMaterialsController {
-  constructor(private readonly educationalMaterialsService: EducationalMaterialsService) {}
+  constructor(
+    private readonly educationalMaterialsService: EducationalMaterialsService,
+  ) {}
 
   @Post()
   @RequireScopes('VET')
@@ -39,7 +50,10 @@ export class EducationalMaterialsController {
 
   @Patch(':id')
   @RequireScopes('VET')
-  update(@Param('id') id: string, @Body() updateDto: UpdateEducationalMaterialDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateEducationalMaterialDto,
+  ) {
     return this.educationalMaterialsService.update(id, updateDto);
   }
 

@@ -22,7 +22,10 @@ export class ClinicsService {
   }
 
   async findOne(id: string) {
-    const clinic = await this.prisma.clinic.findUnique({ where: { id }, include: { vets: true } });
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id },
+      include: { vets: true },
+    });
     if (!clinic) throw new NotFoundException('Clinic not found');
     return clinic;
   }
@@ -35,4 +38,3 @@ export class ClinicsService {
     return this.prisma.clinic.delete({ where: { id } });
   }
 }
-

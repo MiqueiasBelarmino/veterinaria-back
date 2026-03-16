@@ -75,7 +75,7 @@ export class AppointmentsService {
       }
     } catch (err) {
       // Don't fail appointment creation for notification errors, log if necessary
-      // eslint-disable-next-line no-console
+
       console.error('Failed to create notification:', err);
     }
 
@@ -85,7 +85,10 @@ export class AppointmentsService {
   findAll(vetId?: string) {
     const where: Prisma.AppointmentWhereInput = {};
     if (vetId) where.vetId = vetId;
-    return this.prisma.appointment.findMany({ where, include: { pet: true, vet: true } });
+    return this.prisma.appointment.findMany({
+      where,
+      include: { pet: true, vet: true },
+    });
   }
 
   findOne(id: string) {

@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UsePipes,
+  ValidationPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { LaboratoryExamsService } from './laboratory-exams.service';
 import { CreateLaboratoryExamDto } from './dto/create-laboratory-exam.dto';
 import { UpdateLaboratoryExamDto } from './dto/update-laboratory-exam.dto';

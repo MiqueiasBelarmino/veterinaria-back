@@ -1,11 +1,22 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ClientsService } from '../../clients/clients.service';
 
 export interface OwnershipCheckOptions {
   paramName: string; // 'petId', 'examId', etc.
-  resourceType: 'pet' | 'exam' | 'dietaryPlan' | 'educationalMaterial' | 'appointment';
+  resourceType:
+    | 'pet'
+    | 'exam'
+    | 'dietaryPlan'
+    | 'educationalMaterial'
+    | 'appointment';
 }
 
 @Injectable()
@@ -17,7 +28,10 @@ export class OwnershipGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const options = this.reflector.get<OwnershipCheckOptions>('ownershipCheck', context.getHandler());
+    const options = this.reflector.get<OwnershipCheckOptions>(
+      'ownershipCheck',
+      context.getHandler(),
+    );
     if (!options) return true; // Guard não aplicado, permite acesso
 
     const request = context.switchToHttp().getRequest();
@@ -41,9 +55,15 @@ export class OwnershipGuard implements CanActivate {
 
     // CLIENTs precisam validar propriedade
     if (user.role === 'CLIENT') {
-      const isOwner = await this.validateClientOwnership(user.id, resourceId, resourceType);
+      const isOwner = await this.validateClientOwnership(
+        user.id,
+        resourceId,
+        resourceType,
+      );
       if (!isOwner) {
-        throw new ForbiddenException('Acesso negado: recurso não pertence a você');
+        throw new ForbiddenException(
+          'Acesso negado: recurso não pertence a você',
+        );
       }
       return true;
     }
@@ -61,7 +81,9 @@ export class OwnershipGuard implements CanActivate {
 
     switch (resourceType) {
       case 'pet': {
-        const pet = await this.prisma.pet.findUnique({ where: { id: resourceId } });
+        const pet = await this.prisma.pet.findUnique({
+          where: { id: resourceId },
+        });
         return pet?.clientId === client.id;
       }
 

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
@@ -38,11 +42,16 @@ export class AdminService {
     return user;
   }
 
-  async updateUserRole(userId: string, newRole: 'VET' | 'CLIENT' | 'ADMIN' | 'ROOT') {
+  async updateUserRole(
+    userId: string,
+    newRole: 'VET' | 'CLIENT' | 'ADMIN' | 'ROOT',
+  ) {
     // Prevent downgrading ROOT users
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (user?.role === 'ROOT' && newRole !== 'ROOT') {
-      throw new BadRequestException('Não é possível fazer downgrade de usuário ROOT');
+      throw new BadRequestException(
+        'Não é possível fazer downgrade de usuário ROOT',
+      );
     }
 
     return this.prisma.user.update({
@@ -61,7 +70,8 @@ export class AdminService {
   async deleteUser(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Usuário não encontrado');
-    if (user.role === 'ROOT') throw new BadRequestException('Não é possível deletar usuário ROOT');
+    if (user.role === 'ROOT')
+      throw new BadRequestException('Não é possível deletar usuário ROOT');
 
     // Delete related data
     await this.prisma.user.delete({ where: { id: userId } });
@@ -121,15 +131,21 @@ export class AdminService {
 
   // Dashboard Statistics
   async getDashboardStats() {
-    const [totalUsers, totalVets, totalClients, totalAppointments, totalPets, usersByRole] =
-      await Promise.all([
-        this.prisma.user.count(),
-        this.prisma.vet.count(),
-        this.prisma.client.count(),
-        this.prisma.appointment.count(),
-        this.prisma.pet.count(),
-        this.getUsersByRole(),
-      ]);
+    const [
+      totalUsers,
+      totalVets,
+      totalClients,
+      totalAppointments,
+      totalPets,
+      usersByRole,
+    ] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.vet.count(),
+      this.prisma.client.count(),
+      this.prisma.appointment.count(),
+      this.prisma.pet.count(),
+      this.getUsersByRole(),
+    ]);
 
     return {
       totalUsers,

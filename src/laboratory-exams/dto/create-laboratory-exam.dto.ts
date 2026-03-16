@@ -1,4 +1,11 @@
-import { IsEnum, IsString, IsNotEmpty, IsDate, IsOptional, IsArray } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  IsNotEmpty,
+  IsDate,
+  IsOptional,
+  IsArray,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { NutritionProtocol } from '@prisma/client';
 

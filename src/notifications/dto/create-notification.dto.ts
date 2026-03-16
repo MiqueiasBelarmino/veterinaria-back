@@ -15,4 +15,3 @@ export class CreateNotificationDto {
   @IsObject()
   data?: Record<string, unknown>;
 }
-

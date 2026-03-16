@@ -20,7 +20,6 @@ import { ClinicsModule } from './clinics/clinics.module';
 import { AdminModule } from './admin/admin.module';
 import { AppointmentRequestsModule } from './appointment-requests/appointment-requests.module';
 
-
 @Module({
   imports: [
     ScheduleModule.forRoot(),

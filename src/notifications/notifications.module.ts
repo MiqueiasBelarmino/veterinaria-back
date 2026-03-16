@@ -10,4 +10,3 @@ import { NotificationsScheduler } from './notifications.scheduler';
   exports: [NotificationsService],
 })
 export class NotificationsModule {}
-

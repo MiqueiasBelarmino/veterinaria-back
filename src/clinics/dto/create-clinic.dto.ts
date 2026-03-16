@@ -12,4 +12,3 @@ export class CreateClinicDto {
   @IsString()
   phone?: string;
 }
-

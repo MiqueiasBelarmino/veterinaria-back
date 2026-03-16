@@ -7,7 +7,10 @@ import { NotificationsService } from './notifications.service';
 export class NotificationsScheduler {
   private readonly logger = new Logger(NotificationsScheduler.name);
 
-  constructor(private prisma: PrismaService, private notificationsService: NotificationsService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   // Runs every minute and schedules reminders defined in REMINDER_HOURS (comma separated, e.g. "48,24,1")
   // It avoids duplicates by checking existing notifications for the same appointment and scheduledAt
@@ -25,14 +28,18 @@ export class NotificationsScheduler {
       .filter((n) => !Number.isNaN(n) && n >= 0);
 
     if (hoursList.length === 0) {
-      this.logger.warn('No valid REMINDER_HOURS configured; skipping reminders');
+      this.logger.warn(
+        'No valid REMINDER_HOURS configured; skipping reminders',
+      );
       return;
     }
 
     try {
       for (const hours of hoursList) {
         const targetStart = new Date(now.getTime() + hours * 60 * 60 * 1000);
-        const targetEnd = new Date(targetStart.getTime() + windowMinutes * 60 * 1000);
+        const targetEnd = new Date(
+          targetStart.getTime() + windowMinutes * 60 * 1000,
+        );
 
         const appointments = await this.prisma.appointment.findMany({
           where: {
@@ -52,7 +59,11 @@ export class NotificationsScheduler {
           if (!ownerUserId) continue;
 
           const exists = await this.prisma.notification.findFirst({
-            where: { appointmentId: appt.id, scheduledAt: targetStart, type: 'APPOINTMENT_REMINDER' },
+            where: {
+              appointmentId: appt.id,
+              scheduledAt: targetStart,
+              type: 'APPOINTMENT_REMINDER',
+            },
           });
           if (exists) continue;
 
@@ -60,17 +71,21 @@ export class NotificationsScheduler {
             userId: ownerUserId,
             appointmentId: appt.id,
             type: 'APPOINTMENT_REMINDER',
-            data: { message: `Lembrete: consulta em ${new Date(appt.date).toLocaleString()}`, reminderHours: hours },
+            data: {
+              message: `Lembrete: consulta em ${new Date(appt.date).toLocaleString()}`,
+              reminderHours: hours,
+            },
             // scheduledAt will be set by Prisma via the model field below using update; pass via data and set scheduledAt in create
             // but our DTO doesn't include scheduledAt; use prisma directly in service alternatively. For simplicity, set scheduledAt here using any type.
             scheduledAt: targetStart as any,
           } as any);
-          this.logger.log(`Created reminder (${hours}h) for appointment ${appt.id} user ${ownerUserId}`);
+          this.logger.log(
+            `Created reminder (${hours}h) for appointment ${appt.id} user ${ownerUserId}`,
+          );
         }
       }
     } catch (err) {
-      this.logger.error('Error running reminder job', err as any);
+      this.logger.error('Error running reminder job', err);
     }
   }
 }
-

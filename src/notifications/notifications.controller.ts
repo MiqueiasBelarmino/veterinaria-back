@@ -1,4 +1,13 @@
-import { Controller, Get, UseGuards, Request, Patch, Param, Body, Post } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  UseGuards,
+  Request,
+  Patch,
+  Param,
+  Body,
+  Post,
+} from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateNotificationDto } from './dto/create-notification.dto';
@@ -28,4 +37,3 @@ export class NotificationsController {
     return this.notificationsService.create(body);
   }
 }
-

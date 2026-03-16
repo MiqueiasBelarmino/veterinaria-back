@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional, IsDate } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEmail,
+  IsOptional,
+  IsDate,
+} from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 export class CreateAppointmentRequestDto {
@@ -12,7 +18,7 @@ export class CreateAppointmentRequestDto {
 
   @IsEmail({}, { message: 'E-mail inválido' })
   @IsOptional()
-  @Transform(({ value }) => value === "" ? undefined : value)
+  @Transform(({ value }) => (value === '' ? undefined : value))
   ownerEmail?: string;
 
   @IsString()
@@ -30,6 +36,6 @@ export class CreateAppointmentRequestDto {
 
   @IsString()
   @IsOptional()
-  @Transform(({ value }) => value === "" ? undefined : value)
+  @Transform(({ value }) => (value === '' ? undefined : value))
   notes?: string;
 }
