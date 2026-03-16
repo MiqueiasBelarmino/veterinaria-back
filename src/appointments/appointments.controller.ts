@@ -43,19 +43,11 @@ export class AppointmentsController {
     return this.appointmentsService.findOne(id);
   }
 
-  @Patch(':id')
+  @Patch(':id/confirm')
+  @RequireScopes('VET')
   @UsePipes(new ValidationPipe({ transform: true }))
-  update(
-    @Param('id') id: string,
-    @Body() updateAppointmentDto: UpdateAppointmentDto,
-  ) {
-    return this.appointmentsService.update(id, updateAppointmentDto);
-  }
-
-  @Delete(':id')
-  @RequireScopes('appointments:own')
-  remove(@Param('id') id: string) {
-    return this.appointmentsService.remove(id);
+  confirm(@Param('id') id: string) {
+    return this.appointmentsService.confirm(id);
   }
 
   @Patch(':id/finish')
@@ -75,4 +67,20 @@ export class AppointmentsController {
   checkin(@Param('id') id: string) {
     return this.appointmentsService.checkin(id);
   }
+
+  @Patch(':id')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  update(
+    @Param('id') id: string,
+    @Body() updateAppointmentDto: UpdateAppointmentDto,
+  ) {
+    return this.appointmentsService.update(id, updateAppointmentDto);
+  }
+
+  @Delete(':id')
+  @RequireScopes('appointments:own')
+  remove(@Param('id') id: string) {
+    return this.appointmentsService.remove(id);
+  }
+
 }

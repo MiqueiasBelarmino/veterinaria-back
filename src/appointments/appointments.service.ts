@@ -159,4 +159,20 @@ export class AppointmentsService {
       data: { status: AppointmentStatus.CHECKED_IN },
     });
   }
+
+  async confirm(id: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id },
+    });
+
+    if (!appointment) throw new Error('Appointment not found');
+    if (appointment.status !== AppointmentStatus.PENDING) {
+      throw new Error('Only pending appointments can be confirmed');
+    }
+
+    return this.prisma.appointment.update({
+      where: { id },
+      data: { status: AppointmentStatus.SCHEDULED },
+    });
+  }
 }
