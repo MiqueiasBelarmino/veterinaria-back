@@ -179,6 +179,9 @@ model ClinicalRecord {
   appointmentId String?  @map("appointment_id")
   planId        String?  @map("plan_id")
   date          DateTime @default(now())
+  diagnosis     String?
+  treatment     String?
+  prescriptionNotes String? @map("prescription_notes")
   weight        Float?
   notes         String?
   

@@ -14,7 +14,12 @@ export class ClinicalRecordsService {
     if (!pet) throw new NotFoundException('Pet not found');
 
     const recordData: Prisma.ClinicalRecordCreateInput = {
-      ...data,
+      diagnosis: data.diagnosis,
+      treatment: data.treatment,
+      prescriptionNotes: data.prescriptionNotes,
+      weight: data.weight,
+      notes: data.notes,
+      date: data.date,
       pet: { connect: { id: petId } },
     };
 

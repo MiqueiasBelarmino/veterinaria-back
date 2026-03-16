@@ -27,6 +27,18 @@ export class CreateClinicalRecordDto {
 
   @IsString()
   @IsOptional()
+  diagnosis?: string;
+
+  @IsString()
+  @IsOptional()
+  treatment?: string;
+
+  @IsString()
+  @IsOptional()
+  prescriptionNotes?: string;
+
+  @IsString()
+  @IsOptional()
   appointmentId?: string;
 
   @IsString()
