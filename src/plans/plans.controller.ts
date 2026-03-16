@@ -28,11 +28,13 @@ export class PlansController {
     return this.plansService.create(createPlanDto);
   }
 
+/*
   @Get('pet/:petId')
   @RequireScopes('plans:own')
   findAllByPet(@Param('petId') petId: string) {
     return this.plansService.findAllByPet(petId);
   }
+*/
 
   @Get('definitions')
   findAllDefinitions() {
