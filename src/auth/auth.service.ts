@@ -30,11 +30,20 @@ export class AuthService {
   async login(email: string, password: string) {
     const user = await this.validateUser(email, password);
 
+    let clientId: string | undefined;
+    if (user.role === 'CLIENT') {
+      const client = await this.prisma.client.findUnique({
+        where: { userId: user.id },
+      });
+      clientId = client?.id;
+    }
+
     const payload = {
       sub: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      clientId,
     };
     const token = this.jwtService.sign(payload);
 
@@ -45,6 +54,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         role: user.role,
+        clientId,
       },
     };
   }
@@ -57,7 +67,7 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    const user = await this.prisma.$transaction(async (tx) => {
+    const { user, client } = await this.prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
           email: dto.email,
@@ -67,7 +77,7 @@ export class AuthService {
         },
       });
 
-      await tx.client.create({
+      const newClient = await tx.client.create({
         data: {
           name: dto.name,
           email: dto.email,
@@ -76,7 +86,7 @@ export class AuthService {
         },
       });
 
-      return newUser;
+      return { user: newUser, client: newClient };
     });
 
     const payload = {
@@ -84,6 +94,7 @@ export class AuthService {
       name: user.name,
       email: user.email,
       role: user.role,
+      clientId: client.id,
     };
     const token = this.jwtService.sign(payload);
 
@@ -94,6 +105,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         role: user.role,
+        clientId: client.id,
       },
     };
   }

@@ -49,6 +49,6 @@ export class CreatePetDto {
   observations?: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'O ID do cliente é obrigatório' })
-  clientId: string;
+  @IsOptional()
+  clientId?: string;
 }
