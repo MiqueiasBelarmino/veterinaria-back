@@ -24,6 +24,10 @@ export class CreateClientDto {
 
   @IsString()
   @IsOptional()
+  cpf?: string;
+
+  @IsString()
+  @IsOptional()
   address?: string;
 
   @IsOptional()

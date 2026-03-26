@@ -27,6 +27,7 @@ export class ClientsService {
           name: clientData.name,
           email: clientData.email,
           phone: clientData.phone,
+          cpf: clientData.cpf,
           address: clientData.address,
           user: {
             create: {
@@ -46,6 +47,7 @@ export class ClientsService {
         name: clientData.name,
         email: clientData.email,
         phone: clientData.phone,
+        cpf: clientData.cpf,
         address: clientData.address,
       },
       include: { user: true },

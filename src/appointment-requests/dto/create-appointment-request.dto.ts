@@ -22,6 +22,10 @@ export class CreateAppointmentRequestDto {
   ownerEmail?: string;
 
   @IsString()
+  @IsNotEmpty({ message: 'O CPF é obrigatório' })
+  ownerCpf: string;
+
+  @IsString()
   @IsNotEmpty({ message: 'O nome do pet é obrigatório' })
   petName: string;
 

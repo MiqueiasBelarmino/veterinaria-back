@@ -7,151 +7,112 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  VET
-  CLIENT
-  ADMIN
-  ROOT
-}
-
-enum AppointmentType {
-  CONSULTATION
-  INITIAL
-  RETURN
-  HOME_VISIT
-  BOARDING
-}
-
-enum AppointmentStatus {
-  PENDING
-  SCHEDULED
-  COMPLETED
-  CANCELLED
-  CHECKED_IN
-  CHECKED_OUT
-}
-
-enum NutritionProtocol {
-  BASIC
-  OBESITY
-  ENDOCRINE
-  CME
-  DIABETES
-}
-
-
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(CLIENT)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  client    Client? @relation("UserToClient")
-  vet       Vet?
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          Role           @default(CLIENT)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  client        Client?        @relation("UserToClient")
   notifications Notification[]
+  vet           Vet?
 
   @@map("users")
 }
 
 model Vet {
-  id        String   @id @default(uuid())
-  userId    String   @unique @map("user_id")
-  crmv      String?
-  specialty String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  clinicId  String?  @map("clinic_id")
-  clinic    Clinic?  @relation(fields: [clinicId], references: [id])
-
+  id            String         @id @default(uuid())
+  userId        String         @unique @map("user_id")
+  crmv          String?
+  specialty     String?
+  clinicId      String?        @map("clinic_id")
+  appointments  Appointment[]
   prescriptions Prescription[]
-  appointments    Appointment[]
+  clinic        Clinic?        @relation(fields: [clinicId], references: [id])
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("vets")
 }
 
 model Client {
-  id        String   @id @default(uuid())
-  userId    String?  @unique @map("user_id")
-  name      String
-  email     String?
-  address   String?
-  phone     String?
-  user      User?    @relation("UserToClient", fields: [userId], references: [id], onDelete: SetNull)
-  pets      Pet[]
-  sales     Sale[]
+  id                   String               @id @default(uuid())
+  userId               String?              @unique @map("user_id")
+  address              String?
+  phone                String?
+  email                String?
+  name                 String
+  cpf                  String?              @unique
+  user                 User?                @relation("UserToClient", fields: [userId], references: [id])
+  pets                 Pet[]
+  sales                Sale[]
+  appointmentRequests  AppointmentRequest[]
 
   @@map("clients")
 }
 
 model Pet {
-  id          String   @id @default(uuid())
-  clientId    String   @map("client_id")
-  name        String
-  species     String
-  breed       String?
-  birthDate   DateTime? @map("birth_date")
-  weight      Float?
-  sex         String?
-  isNeutered  Boolean  @default(false) @map("is_neutered")
-  clinicalNotes String? @map("clinical_notes")
-  observations String?
-  
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
-  prescriptions Prescription[]
-  clinicalRecords ClinicalRecord[]
-  laboratoryExams LaboratoryExam[]
-  dietaryPlans    DietaryPlan[]
+  id                   String                @id @default(uuid())
+  clientId             String                @map("client_id")
+  name                 String
+  species              String
+  breed                String?
+  birthDate            DateTime?             @map("birth_date")
+  weight               Float?
+  observations         String?
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  clinicalNotes        String?               @map("clinical_notes")
+  isNeutered           Boolean               @default(false) @map("is_neutered")
+  sex                  String?
+  appointments         Appointment[]
+  clinicalRecords      ClinicalRecord[]
+  dietaryPlans         DietaryPlan[]
+  laboratoryExams      LaboratoryExam[]
+  client               Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  prescriptions        Prescription[]
   educationalMaterials EducationalMaterial[] @relation("PetMaterials")
-
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("pets")
 }
 
 model Appointment {
-  id          String            @id @default(uuid())
-  petId       String            @map("pet_id")
-  vetId       String?           @map("vet_id")
-  date        DateTime
-  type        AppointmentType
-  status      AppointmentStatus @default(SCHEDULED)
-  notes       String?
-  meetingProvider String?           @map("meeting_provider")
-  meetingUrl      String?           @map("meeting_url")
-  
-  pet         Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
-  vet         Vet?     @relation(fields: [vetId], references: [id])
-  prescription Prescription?
-  clinicalRecords ClinicalRecord[]
+  id                   String                @id @default(uuid())
+  petId                String                @map("pet_id")
+  date                 DateTime
+  type                 AppointmentType
+  status               AppointmentStatus     @default(SCHEDULED)
+  notes                String?
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  vetId                String?               @map("vet_id")
+  meetingProvider      String?               @map("meeting_provider")
+  meetingUrl           String?               @map("meeting_url")
+  appointmentRequest   AppointmentRequest?
+  pet                  Pet                   @relation(fields: [petId], references: [id], onDelete: Cascade)
+  vet                  Vet?                  @relation(fields: [vetId], references: [id])
+  clinicalRecords      ClinicalRecord[]
+  notifications        Notification[]
+  prescription         Prescription?
   educationalMaterials EducationalMaterial[] @relation("AppointmentMaterials")
-  notifications Notification[]
-  appointmentRequest AppointmentRequest?
-
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("appointments")
 }
 
 model Prescription {
-  id            String   @id @default(uuid())
-  appointmentId String?  @unique @map("appointment_id")
-  petId         String   @map("pet_id")
-  vetId         String   @map("vet_id")
-  date          DateTime @default(now())
+  id            String             @id @default(uuid())
+  appointmentId String?            @unique @map("appointment_id")
+  petId         String             @map("pet_id")
+  vetId         String             @map("vet_id")
+  date          DateTime           @default(now())
   observations  String?
-
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-  pet           Pet          @relation(fields: [petId], references: [id])
-  vet           Vet          @relation(fields: [vetId], references: [id])
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
   items         PrescriptionItem[]
-
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  appointment   Appointment?       @relation(fields: [appointmentId], references: [id])
+  pet           Pet                @relation(fields: [petId], references: [id])
+  vet           Vet                @relation(fields: [vetId], references: [id])
 
   @@map("prescriptions")
 }
@@ -164,73 +125,65 @@ model PrescriptionItem {
   frequency      String?
   duration       String?
   notes          String?
-
   prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
 
   @@map("prescription_items")
 }
 
 model ClinicalRecord {
-  id            String   @id @default(uuid())
-  petId         String   @map("pet_id")
-  appointmentId String?  @map("appointment_id")
-  date          DateTime @default(now())
-  diagnosis     String?
-  treatment     String?
-  prescriptionNotes String? @map("prescription_notes")
-  weight        Float?
-  notes         String?
-  
-  pet           Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id                String       @id @default(uuid())
+  petId             String       @map("pet_id")
+  appointmentId     String?      @map("appointment_id")
+  date              DateTime     @default(now())
+  weight            Float?
+  notes             String?
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  diagnosis         String?
+  prescriptionNotes String?      @map("prescription_notes")
+  treatment         String?
+  appointment       Appointment? @relation(fields: [appointmentId], references: [id])
+  pet               Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
 
   @@map("clinical_records")
 }
 
 model Product {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   name        String
   description String?
   price       Float
-  stock       Int      @default(0)
+  stock       Int        @default(0)
   category    String?
-  
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
   saleItems   SaleItem[]
-
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("products")
 }
 
 model Sale {
-  id        String   @id @default(uuid())
-  clientId  String?  @map("client_id")
-  total     Float
-  date      DateTime @default(now())
-  
-  client    Client?  @relation(fields: [clientId], references: [id])
-  items     SaleItem[]
+  id       String     @id @default(uuid())
+  clientId String?    @map("client_id")
+  total    Float
+  date     DateTime   @default(now())
+  items    SaleItem[]
+  client   Client?    @relation(fields: [clientId], references: [id])
 
   @@map("sales")
 }
 
 model SaleItem {
-  id        String   @id @default(uuid())
-  saleId    String   @map("sale_id")
-  productId String   @map("product_id")
+  id        String  @id @default(uuid())
+  saleId    String  @map("sale_id")
+  productId String  @map("product_id")
   quantity  Int
   price     Float
-
-  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@map("sale_items")
 }
-
 
 model LaboratoryExam {
   id          String            @id @default(uuid())
@@ -239,138 +192,160 @@ model LaboratoryExam {
   date        DateTime          @default(now())
   results     String
   attachments String[]          @default([])
-  
-  pet         Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
-
   createdAt   DateTime          @default(now()) @map("created_at")
   updatedAt   DateTime          @updatedAt @map("updated_at")
+  pet         Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
 
   @@map("laboratory_exams")
 }
 
 model DietaryPlan {
-  id              String   @id @default(uuid())
-  petId           String   @map("pet_id")
-  version         Int      @default(1)
-  isActive        Boolean  @default(true) @map("is_active")
-  observations    String?
-  startDate       DateTime @default(now()) @map("start_date")
-  
-  pet             Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
-  meals           Meal[]
-
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  petId        String   @map("pet_id")
+  version      Int      @default(1)
+  isActive     Boolean  @default(true) @map("is_active")
+  observations String?
+  startDate    DateTime @default(now()) @map("start_date")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  pet          Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  meals        Meal[]
 
   @@map("dietary_plans")
 }
 
 model Meal {
-  id              String   @id @default(uuid())
-  dietaryPlanId   String   @map("dietary_plan_id")
-  name            String
-  time            String?
-  order           Int      @default(0)
-  
-  dietaryPlan     DietaryPlan @relation(fields: [dietaryPlanId], references: [id], onDelete: Cascade)
-  items           MealItem[]
+  id            String      @id @default(uuid())
+  dietaryPlanId String      @map("dietary_plan_id")
+  name          String
+  time          String?
+  order         Int         @default(0)
+  items         MealItem[]
+  dietaryPlan   DietaryPlan @relation(fields: [dietaryPlanId], references: [id], onDelete: Cascade)
 
   @@map("meals")
 }
 
 model MealItem {
-  id              String   @id @default(uuid())
-  mealId          String   @map("meal_id")
-  foodName        String   @map("food_name")
-  quantity        Float
-  unit            String
-  frequency       String?
-  notes           String?
-  substitutions   String?
-  combinations    String?
-  
-  meal            Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  id            String  @id @default(uuid())
+  mealId        String  @map("meal_id")
+  foodName      String  @map("food_name")
+  quantity      Float
+  unit          String
+  frequency     String?
+  notes         String?
+  combinations  String?
+  substitutions String?
+  meal          Meal    @relation(fields: [mealId], references: [id], onDelete: Cascade)
 
   @@map("meal_items")
 }
+
+model EducationalMaterial {
+  id             String        @id @default(uuid())
+  title          String
+  description    String?
+  type           MaterialType
+  content        String?
+  attachmentUrl  String?
+  attachmentName String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  appointments   Appointment[] @relation("AppointmentMaterials")
+  pets           Pet[]         @relation("PetMaterials")
+
+  @@map("educational_materials")
+}
+
+model Notification {
+  id            String       @id @default(uuid())
+  userId        String       @map("user_id")
+  appointmentId String?      @map("appointment_id")
+  type          String
+  data          Json?
+  read          Boolean      @default(false)
+  scheduledAt   DateTime?    @map("scheduled_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Clinic {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  phone     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  vets      Vet[]
+
+  @@map("clinics")
+}
+
+model AppointmentRequest {
+  id            String        @id @default(uuid())
+  ownerName     String        @map("owner_name")
+  ownerPhone    String        @map("owner_phone")
+  ownerEmail    String?       @map("owner_email")
+  ownerCpf      String?       @map("owner_cpf")
+  petName       String        @map("pet_name")
+  petSpecies    String        @map("pet_species")
+  preferredDate DateTime      @map("preferred_date")
+  notes         String?
+  status        RequestStatus @default(PENDING)
+  appointmentId String?       @unique @map("appointment_id")
+  clientId      String?       @map("client_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  appointment   Appointment?  @relation(fields: [appointmentId], references: [id])
+  client        Client?       @relation(fields: [clientId], references: [id])
+
+  @@map("appointment_requests")
+}
+
+enum Role {
+  VET
+  CLIENT
+  ADMIN
+  ROOT
+}
+
+enum AppointmentType {
+  CONSULTATION
+  HOME_VISIT
+  BOARDING
+  INITIAL
+  RETURN
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  CHECKED_IN
+  CHECKED_OUT
+  PENDING
+}
+
+enum NutritionProtocol {
+  BASIC
+  OBESITY
+  ENDOCRINE
+  CME
+  DIABETES
+}
+
 enum MaterialType {
   EBOOK
   RECIPE
   GUIDELINE
 }
 
-model EducationalMaterial {
-  id              String   @id @default(uuid())
-  title           String
-  description     String?
-  type            MaterialType
-  content         String?  // Markdown/Text content
-  attachmentUrl   String?  // Can be a URL or a file path in the future
-  attachmentName  String?  // Original file name
-  
-  // Many-to-many relations
-  pets            Pet[]            @relation("PetMaterials")
-  appointments    Appointment[]    @relation("AppointmentMaterials")
-
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  @@map("educational_materials")
-}
-
-model Notification {
-  id            String     @id @default(uuid())
-  userId        String     @map("user_id")
-  appointmentId String?    @map("appointment_id")
-  type          String
-  data          Json?
-  read          Boolean    @default(false)
-  scheduledAt   DateTime?  @map("scheduled_at")
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
-
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointment  Appointment? @relation(fields: [appointmentId], references: [id])
-
-  @@map("notifications")
-}
-
-model Clinic {
-  id        String  @id @default(uuid())
-  name      String
-  address   String?
-  phone     String?
-
-  vets      Vet[] 
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("clinics")
-}
-
 enum RequestStatus {
   PENDING
   PROCESSED
   REJECTED
-}
-
-model AppointmentRequest {
-  id              String        @id @default(uuid())
-  ownerName       String        @map("owner_name")
-  ownerPhone      String        @map("owner_phone")
-  ownerEmail      String?       @map("owner_email")
-  petName         String        @map("pet_name")
-  petSpecies      String        @map("pet_species")
-  preferredDate   DateTime      @map("preferred_date")
-  notes           String?
-  status          RequestStatus @default(PENDING)
-  
-  appointmentId   String?       @unique @map("appointment_id")
-  appointment     Appointment?  @relation(fields: [appointmentId], references: [id])
-
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-
-  @@map("appointment_requests")
 }

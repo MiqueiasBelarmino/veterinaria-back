@@ -8,10 +8,18 @@ export class AppointmentRequestsService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateAppointmentRequestDto) {
+    const { ownerCpf, ...rest } = data;
+
+    const existingClient = ownerCpf
+      ? await this.prisma.client.findUnique({ where: { cpf: ownerCpf } })
+      : null;
+
     return this.prisma.appointmentRequest.create({
       data: {
-        ...data,
+        ...rest,
+        ownerCpf,
         status: RequestStatus.PENDING,
+        clientId: existingClient?.id,
       },
     });
   }
