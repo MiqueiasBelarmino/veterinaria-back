@@ -12,6 +12,7 @@ import {
   ValidationPipe,
   ForbiddenException,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { PetsService } from './pets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -50,13 +51,17 @@ export class PetsController {
   }
 
   @Get()
-  async findAll(@Request() req: any) {
+  async findAll(@Request() req: any, @Query('clientId') clientId?: string) {
     const user = req.user;
 
     if (user.role === 'CLIENT') {
       const client = await this.clientsService.findByUserId(user.id);
       if (!client) return [];
       return this.petsService.findByClient(client.id);
+    }
+
+    if (clientId) {
+      return this.petsService.findByClient(clientId);
     }
 
     return this.petsService.findAll();
