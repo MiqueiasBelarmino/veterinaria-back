@@ -11,7 +11,6 @@ export class ClientsService {
     const { createAccount, password, ...clientData } = dto;
 
     if (createAccount && password && clientData.email) {
-      // Check if user already exists
       const existingUser = await this.prisma.user.findUnique({
         where: { email: clientData.email },
       });
@@ -22,7 +21,7 @@ export class ClientsService {
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      return this.prisma.client.create({
+      const newClient = await this.prisma.client.create({
         data: {
           name: clientData.name,
           email: clientData.email,
@@ -40,9 +39,18 @@ export class ClientsService {
         },
         include: { user: true },
       });
+
+      if (clientData.cpf) {
+        await this.prisma.appointmentRequest.updateMany({
+          where: { ownerCpf: clientData.cpf, clientId: null },
+          data: { clientId: newClient.id },
+        });
+      }
+
+      return newClient;
     }
 
-    return this.prisma.client.create({
+    const newClient = await this.prisma.client.create({
       data: {
         name: clientData.name,
         email: clientData.email,
@@ -52,6 +60,15 @@ export class ClientsService {
       },
       include: { user: true },
     });
+
+    if (clientData.cpf) {
+      await this.prisma.appointmentRequest.updateMany({
+        where: { ownerCpf: clientData.cpf, clientId: null },
+        data: { clientId: newClient.id },
+      });
+    }
+
+    return newClient;
   }
 
   findAll() {

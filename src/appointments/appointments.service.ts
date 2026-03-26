@@ -12,7 +12,7 @@ export class AppointmentsService {
     const { petId, vetId, ...data } = createAppointmentDto;
 
     // Security: If user is a CLIENT, check if the pet belongs to them
-    if (user && user.role === 'CLIENT') {
+    if (user && user.role === 'CLIENT' && petId) {
       const client = await this.prisma.client.findUnique({
         where: { userId: user.id },
       });
@@ -26,10 +26,9 @@ export class AppointmentsService {
       }
     }
 
-
     const appointmentData: Prisma.AppointmentCreateInput = {
       ...data,
-      pet: { connect: { id: petId } },
+      pet: petId ? { connect: { id: petId } } : undefined,
       vet: vetId ? { connect: { id: vetId } } : undefined,
       status: user?.role === 'CLIENT' ? AppointmentStatus.PENDING : AppointmentStatus.SCHEDULED,
     };
@@ -47,22 +46,24 @@ export class AppointmentsService {
     });
 
     // Create a simple notification for the pet owner (if linked to a user)
-    try {
-      const clientUserId = created.pet?.client?.userId;
-      if (clientUserId) {
-        await this.prisma.notification.create({
-          data: {
-            user: { connect: { id: clientUserId } },
-            appointment: { connect: { id: created.id } },
-            type: 'APPOINTMENT_CREATED',
+    if (created.pet) {
+      try {
+        const clientUserId = created.pet?.client?.userId;
+        if (clientUserId) {
+          await this.prisma.notification.create({
             data: {
-              message: `Consulta agendada para ${created.date.toISOString()}`,
+              user: { connect: { id: clientUserId } },
+              appointment: { connect: { id: created.id } },
+              type: 'APPOINTMENT_CREATED',
+              data: {
+                message: `Consulta agendada para ${created.date.toISOString()}`,
+              },
             },
-          },
-        });
+          });
+        }
+      } catch (err) {
+        console.error('Failed to create notification:', err);
       }
-    } catch (err) {
-      console.error('Failed to create notification:', err);
     }
 
     return created;

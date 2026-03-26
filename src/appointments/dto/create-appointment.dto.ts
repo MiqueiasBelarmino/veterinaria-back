@@ -17,8 +17,8 @@ export enum AppointmentType {
 
 export class CreateAppointmentDto {
   @IsString()
-  @IsNotEmpty({ message: 'O ID do pet é obrigatório' })
-  petId: string;
+  @IsOptional()
+  petId?: string;
 
   @IsDate()
   @Type(() => Date)

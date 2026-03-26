@@ -32,6 +32,13 @@ export class AppointmentRequestsService {
     });
   }
 
+  async linkClientToRequests(cpf: string, clientId: string) {
+    await this.prisma.appointmentRequest.updateMany({
+      where: { ownerCpf: cpf, clientId: null },
+      data: { clientId },
+    });
+  }
+
   async updateStatus(id: string, status: RequestStatus) {
     return this.prisma.appointmentRequest.update({
       where: { id },

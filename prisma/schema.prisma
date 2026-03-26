@@ -79,7 +79,7 @@ model Pet {
 
 model Appointment {
   id                   String                @id @default(uuid())
-  petId                String                @map("pet_id")
+  petId                String?               @map("pet_id")
   date                 DateTime
   type                 AppointmentType
   status               AppointmentStatus     @default(SCHEDULED)
@@ -90,7 +90,7 @@ model Appointment {
   meetingProvider      String?               @map("meeting_provider")
   meetingUrl           String?               @map("meeting_url")
   appointmentRequest   AppointmentRequest?
-  pet                  Pet                   @relation(fields: [petId], references: [id], onDelete: Cascade)
+  pet                  Pet?                  @relation(fields: [petId], references: [id], onDelete: SetNull)
   vet                  Vet?                  @relation(fields: [vetId], references: [id])
   clinicalRecords      ClinicalRecord[]
   notifications        Notification[]
