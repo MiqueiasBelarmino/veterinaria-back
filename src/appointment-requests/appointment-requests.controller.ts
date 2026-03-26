@@ -43,4 +43,11 @@ export class AppointmentRequestsController {
   ) {
     return this.appointmentRequestsService.updateStatus(id, body.status);
   }
+
+  @Post(':id/process')
+  @UseGuards(JwtAuthGuard, ScopesGuard)
+  @Role('ADMIN', 'ROOT', 'VET')
+  process(@Param('id') id: string) {
+    return this.appointmentRequestsService.process(id);
+  }
 }
