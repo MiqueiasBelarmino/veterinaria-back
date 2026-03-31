@@ -26,6 +26,7 @@ export class CreateAppointmentDto {
   date: Date;
 
   @IsEnum(AppointmentType, { message: 'Tipo de agendamento inválido' })
+  @IsOptional()
   type: AppointmentType;
 
   @IsString()

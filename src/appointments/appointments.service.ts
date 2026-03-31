@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AppointmentStatus, Prisma } from '@prisma/client';
+import { AppointmentStatus, AppointmentType, Prisma } from '@prisma/client';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 
@@ -28,6 +28,7 @@ export class AppointmentsService {
 
     const appointmentData: Prisma.AppointmentCreateInput = {
       ...data,
+      type: data.type || AppointmentType.INITIAL,
       pet: petId ? { connect: { id: petId } } : undefined,
       vet: vetId ? { connect: { id: vetId } } : undefined,
       status: user?.role === 'CLIENT' ? AppointmentStatus.PENDING : AppointmentStatus.SCHEDULED,
