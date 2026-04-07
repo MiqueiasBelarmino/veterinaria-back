@@ -110,7 +110,18 @@ export class AppointmentsService {
     return this.prisma.appointment.update({ where: { id }, data: updateData });
   }
 
-  remove(id: string) {
+  async remove(id: string) {
+    // Delete dependent notifications first to prevent foreign key errors
+    await this.prisma.notification.deleteMany({
+      where: { appointmentId: id },
+    });
+
+    // Unlink from appointment requests
+    await this.prisma.appointmentRequest.updateMany({
+      where: { appointmentId: id },
+      data: { appointmentId: null },
+    });
+
     return this.prisma.appointment.delete({ where: { id } });
   }
 

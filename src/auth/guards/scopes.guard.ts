@@ -59,6 +59,7 @@ export class ScopesGuard implements CanActivate {
             });
             if (!vet) continue;
             if (vet.id === appt.vetId) return true;
+            if (appt.vetId === null) return true;
             if (
               vet.clinicId &&
               appt.vet &&
