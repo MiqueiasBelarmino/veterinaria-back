@@ -11,15 +11,18 @@ import {
 import { DietaryPlansService } from './dietary-plans.service';
 import { CreateDietaryPlanDto } from './dto/create-dietary-plan.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
+import { Role } from '../auth/decorators/role.decorator';
 import { OwnershipGuard } from '../auth/guards/ownership.guard';
 import { CheckOwnership } from '../auth/decorators/check-ownership.decorator';
 
 @Controller('dietary-plans')
-@UseGuards(JwtAuthGuard, OwnershipGuard)
+@UseGuards(JwtAuthGuard, RoleGuard, OwnershipGuard)
 export class DietaryPlansController {
   constructor(private readonly dietaryPlansService: DietaryPlansService) {}
 
   @Post()
+  @Role('VET', 'ADMIN', 'ROOT')
   @UsePipes(new ValidationPipe({ transform: true }))
   create(@Body() createDto: CreateDietaryPlanDto) {
     return this.dietaryPlansService.create(createDto);

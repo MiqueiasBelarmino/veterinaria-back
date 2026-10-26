@@ -21,14 +21,26 @@ export class PetsService {
 
   findAll() {
     return this.prisma.pet.findMany({
-      include: { client: { include: { user: true } } },
+      include: {
+        client: {
+          include: {
+            user: { select: { id: true, name: true, email: true, role: true } },
+          },
+        },
+      },
     });
   }
 
   findByClient(clientId: string) {
     return this.prisma.pet.findMany({ 
       where: { clientId },
-      include: { client: { include: { user: true } } }
+      include: {
+        client: {
+          include: {
+            user: { select: { id: true, name: true, email: true, role: true } },
+          },
+        },
+      },
     });
   }
 

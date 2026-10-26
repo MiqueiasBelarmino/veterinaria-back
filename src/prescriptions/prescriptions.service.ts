@@ -73,7 +73,11 @@ export class PrescriptionsService {
       include: {
         pet: true,
         items: true,
-        vet: { include: { user: true } },
+        vet: {
+          include: {
+            user: { select: { id: true, name: true, email: true, role: true } },
+          },
+        },
       },
     });
   }
@@ -84,7 +88,11 @@ export class PrescriptionsService {
       include: {
         items: true,
         pet: true,
-        vet: { include: { user: true } },
+        vet: {
+          include: {
+            user: { select: { id: true, name: true, email: true, role: true } },
+          },
+        },
       },
     });
   }

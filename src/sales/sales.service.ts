@@ -64,7 +64,11 @@ export class SalesService {
     return this.prisma.sale.findMany({
       include: {
         items: { include: { product: true } },
-        client: { include: { user: true } },
+        client: {
+          include: {
+            user: { select: { id: true, name: true, email: true, role: true } },
+          },
+        },
       },
     });
   }
