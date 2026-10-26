@@ -18,8 +18,9 @@ export class UsersService {
         name: data.name,
         email: data.email,
         password: hashedPassword,
-        role: data.role || 'CLIENT',
+        role: 'CLIENT',
       },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
     });
   }
 
@@ -34,7 +35,10 @@ export class UsersService {
   }
 
   async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+    });
     if (!user) throw new NotFoundException('Usuário não encontrado');
     return user;
   }

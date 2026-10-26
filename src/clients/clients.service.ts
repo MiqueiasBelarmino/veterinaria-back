@@ -37,7 +37,7 @@ export class ClientsService {
             },
           },
         },
-        include: { user: true },
+        include: { user: { select: this.safeUserSelect } },
       });
 
       if (clientData.cpf) {
@@ -58,7 +58,7 @@ export class ClientsService {
         cpf: clientData.cpf,
         address: clientData.address,
       },
-      include: { user: true },
+      include: { user: { select: this.safeUserSelect } },
     });
 
     if (clientData.cpf) {
@@ -71,9 +71,16 @@ export class ClientsService {
     return newClient;
   }
 
+  private readonly safeUserSelect = {
+    id: true,
+    name: true,
+    email: true,
+    role: true,
+  };
+
   findAll() {
     return this.prisma.client.findMany({
-      include: { user: true, pets: true },
+      include: { user: { select: this.safeUserSelect }, pets: true },
       orderBy: { name: 'asc' },
     });
   }
@@ -81,31 +88,35 @@ export class ClientsService {
   findByUserId(userId: string) {
     return this.prisma.client.findUnique({
       where: { userId },
-      include: { user: true },
+      include: { user: { select: this.safeUserSelect } },
     });
   }
 
   findOne(id: string) {
     return this.prisma.client.findUnique({
       where: { id },
-      include: { user: true, pets: true },
+      include: { user: { select: this.safeUserSelect }, pets: true },
     });
   }
 
   async update(id: string, data: any) {
-    const { createAccount, password, ...clientData } = data;
+    const { createAccount, password } = data;
+    const sanitizedData: Record<string, any> = {};
+    for (const key of ['name', 'email', 'phone', 'cpf', 'address']) {
+      if (data[key] !== undefined) sanitizedData[key] = data[key];
+    }
 
     // Fetch current state to check for existing user
     const client = await this.prisma.client.findUnique({
       where: { id },
-      include: { user: true },
+      include: { user: { select: this.safeUserSelect } },
     });
 
     if (!client) {
       throw new Error('Cliente não encontrado');
     }
 
-    const emailToUse = clientData.email || client.email;
+    const emailToUse = sanitizedData.email || client.email;
 
     // Handle late account creation
     if (createAccount && password && !client.user && emailToUse) {
@@ -123,20 +134,20 @@ export class ClientsService {
       const newUser = await this.prisma.user.create({
         data: {
           email: emailToUse,
-          name: clientData.name || client.name,
+          name: sanitizedData.name || client.name,
           password: hashedPassword,
           role: 'CLIENT',
         },
       });
 
-      // Link the new user to the clientData payload
-      clientData.userId = newUser.id;
+      // Link the new user to the sanitizedData payload
+      sanitizedData.userId = newUser.id;
     }
 
     return this.prisma.client.update({
       where: { id },
-      data: clientData,
-      include: { user: true },
+      data: sanitizedData,
+      include: { user: { select: this.safeUserSelect } },
     });
   }
 

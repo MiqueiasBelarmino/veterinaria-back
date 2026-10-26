@@ -11,9 +11,12 @@ import {
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
+import { Role } from '../auth/decorators/role.decorator';
 
 @Controller('clients')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RoleGuard)
+@Role('VET', 'ADMIN', 'ROOT')
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
 

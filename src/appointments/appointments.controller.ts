@@ -39,6 +39,7 @@ export class AppointmentsController {
   }
 
   @Get(':id')
+  @RequireScopes('appointments:own', 'VET')
   findOne(@Param('id') id: string) {
     return this.appointmentsService.findOne(id);
   }
@@ -51,24 +52,28 @@ export class AppointmentsController {
   }
 
   @Patch(':id/finish')
+  @RequireScopes('VET')
   @UsePipes(new ValidationPipe({ transform: true }))
   finish(@Param('id') id: string) {
     return this.appointmentsService.finish(id);
   }
 
   @Patch(':id/cancel')
+  @RequireScopes('appointments:own', 'VET')
   @UsePipes(new ValidationPipe({ transform: true }))
   cancel(@Param('id') id: string) {
     return this.appointmentsService.cancel(id);
   }
 
   @Patch(':id/checkin')
+  @RequireScopes('VET')
   @UsePipes(new ValidationPipe({ transform: true }))
   checkin(@Param('id') id: string) {
     return this.appointmentsService.checkin(id);
   }
 
   @Patch(':id')
+  @RequireScopes('appointments:own', 'VET')
   @UsePipes(new ValidationPipe({ transform: true }))
   update(
     @Param('id') id: string,
@@ -78,7 +83,7 @@ export class AppointmentsController {
   }
 
   @Delete(':id')
-  @RequireScopes('appointments:own')
+  @RequireScopes('appointments:own', 'VET')
   remove(@Param('id') id: string) {
     return this.appointmentsService.remove(id);
   }

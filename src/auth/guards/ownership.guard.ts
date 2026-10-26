@@ -48,8 +48,8 @@ export class OwnershipGuard implements CanActivate {
       throw new BadRequestException(`Parâmetro ${paramName} não encontrado`);
     }
 
-    // VETs têm acesso a tudo (podem gerenciar recursos de qualquer pet/cliente)
-    if (user.role === 'VET') {
+    // VETs, ADMINs e ROOT têm acesso a tudo (podem gerenciar recursos de qualquer pet/cliente)
+    if (user.role === 'VET' || user.role === 'ADMIN' || user.role === 'ROOT') {
       return true;
     }
 

@@ -12,15 +12,29 @@ export class ScopesGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredScopes =
-      this.reflector.get<string[]>(SCOPES_KEY, context.getHandler()) || [];
-    if (requiredScopes.length === 0) return true;
+      this.reflector.getAllAndOverride<string[]>(SCOPES_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) || [];
+    const requiredRoles =
+      this.reflector.getAllAndOverride<string[]>('role', [
+        context.getHandler(),
+        context.getClass(),
+      ]) || [];
+
+    if (requiredScopes.length === 0 && requiredRoles.length === 0) return true;
 
     const req = context.switchToHttp().getRequest();
     const user = req.user;
     if (!user) return false;
 
-    // Admin bypass
-    if (user.role === 'ADMIN') return true;
+    // Admin / Root bypass
+    if (user.role === 'ADMIN' || user.role === 'ROOT') return true;
+
+    if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
+      return false;
+    }
+    if (requiredScopes.length === 0) return true;
 
     // If any scope passes, allow (OR semantics)
     for (const scope of requiredScopes) {
